@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mcp-mem0:
+    build: .
+    ports:
+      - "8050:8050"
+    environment:
+      - TRANSPORT=sse
+      - HOST=0.0.0.0
+      - PORT=8050
+      - OPENAI_API_KEY=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
+      - LLM_PROVIDER=openai
+      - LLM_API_KEY=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
+      - LLM_CHOICE=gpt-4o-mini
+      - EMBEDDING_MODEL_CHOICE=text-embedding-3-small
+    restart: unless-stopped 
