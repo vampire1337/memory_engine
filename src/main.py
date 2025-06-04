@@ -34,6 +34,31 @@ load_dotenv()
 # Default user ID for memory operations
 DEFAULT_USER_ID = "user"
 
+# Global initialization flag to prevent race conditions
+_server_initialized = False
+_initialization_lock = asyncio.Lock()
+
+async def ensure_server_initialized():
+    """Ensure the server is properly initialized before processing requests."""
+    global _server_initialized
+    if not _server_initialized:
+        async with _initialization_lock:
+            if not _server_initialized:
+                # Wait a bit for initialization to complete
+                await asyncio.sleep(0.5)
+                # Test the mem0 client to ensure it's working
+                try:
+                    mem0_client = get_mem0_client()
+                    # Simple test to ensure client is working
+                    _ = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
+                    _server_initialized = True
+                except Exception as e:
+                    await asyncio.sleep(1.0)  # Wait longer if there's an issue
+                    raise RuntimeError(f"Server initialization failed: {str(e)}")
+    
+    if not _server_initialized:
+        raise RuntimeError("Server is still initializing, please retry in a moment")
+
 # Create a dataclass for our application context
 @dataclass
 class Mem0Context:
@@ -218,34 +243,67 @@ async def get_accurate_context(
     try:
         mem0_client = get_mem0_client()
         
-        # Use enhanced search simulation
-        filtered_memories = simulate_enhanced_search(
-            mem0_client, query, project_id, min_confidence, limit
-        )
+        # Get all memories to filter through
+        all_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID)
+        memory_list = safe_get_memories(all_memories)
+        
+        # Filter by project if specified and process for accuracy
+        filtered_memories = []
+        for memory_item in memory_list:
+            metadata = get_memory_metadata(memory_item)
+            
+            # Skip expired memories
+            if is_memory_expired(metadata):
+                continue
+                
+            # Filter by project if specified
+            if project_id and metadata.get('project_id') != project_id:
+                continue
+                
+            # Filter by confidence level
+            confidence = metadata.get('confidence_level', 5)
+            if confidence >= min_confidence:
+                # Check if not deprecated
+                if metadata.get('status') != 'deprecated':
+                    filtered_memories.append(metadata)
+        
+        # If we have too few results, do a semantic search as backup
+        if len(filtered_memories) < limit:
+            search_results = mem0_client.search(query, user_id=DEFAULT_USER_ID, limit=limit * 2)
+            search_list = safe_get_memories(search_results)
+            
+            for memory_item in search_list:
+                metadata = get_memory_metadata(memory_item)
+                
+                # Apply same filters
+                if (not is_memory_expired(metadata) and
+                    metadata.get('confidence_level', 5) >= min_confidence and
+                    metadata.get('status') != 'deprecated' and
+                    (not project_id or metadata.get('project_id') == project_id)):
+                    
+                    # Avoid duplicates
+                    if not any(existing.get('content') == metadata.get('content') 
+                             for existing in filtered_memories):
+                        filtered_memories.append(metadata)
+        
+        # Sort by confidence level and limit results
+        filtered_memories.sort(key=lambda x: x.get('confidence_level', 0), reverse=True)
+        filtered_memories = filtered_memories[:limit]
         
         if not filtered_memories:
-            return f"🔍 No accurate context found for query: '{query}' (min_confidence: {min_confidence})"
+            scope = f"project '{project_id}'" if project_id else "memory"
+            return f"🔍 No accurate context found for query '{query}' in {scope} with min confidence {min_confidence}/10"
         
-        # Format results with quality indicators
-        results = []
-        for metadata in filtered_memories:
-            result_entry = {
-                "content": metadata['content'],
-                "confidence_level": metadata['confidence_level'],
-                "category": categorize_content(metadata['content']),
-                "estimated_project": extract_project_from_content(metadata['content']) or project_id,
-                "content_length": len(metadata['content']),
-                "estimated_tags": [categorize_content(metadata['content'])]
-            }
-            results.append(result_entry)
-        
-        return json.dumps({
+        # Format results
+        context_data = {
             "query": query,
-            "results_found": len(results),
-            "min_confidence_applied": min_confidence,
-            "note": "Results based on content analysis due to basic API limitations",
-            "accurate_context": results
-        }, indent=2)
+            "project_filter": project_id,
+            "min_confidence_filter": min_confidence,
+            "results_found": len(filtered_memories),
+            "accurate_context": filtered_memories
+        }
+        
+        return json.dumps(context_data, indent=2)
         
     except Exception as e:
         return f"❌ Error retrieving accurate context: {str(e)}"
@@ -267,87 +325,121 @@ async def validate_project_context(project_id: str) -> str:
         all_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID)
         memory_list = safe_get_memories(all_memories)
         
-        # Process memories and filter by project using content analysis
+        # Filter project-specific memories
         project_memories = []
         for memory_item in memory_list:
             metadata = get_memory_metadata(memory_item)
-            content = metadata['content']
-            
-            # Check if memory is related to the project
-            extracted_project = extract_project_from_content(content)
-            if (extracted_project and extracted_project.lower() == project_id.lower()) or \
-               (project_id.lower() in content.lower()):
-                # Estimate metadata for analysis
-                metadata['confidence_level'] = estimate_content_confidence(content)
-                metadata['category'] = categorize_content(content)
-                metadata['estimated_project'] = extracted_project or project_id
+            if metadata.get('project_id') == project_id:
                 project_memories.append(metadata)
         
         if not project_memories:
             return f"📋 No memories found for project: {project_id}"
         
-        # Analyze memory quality using estimated data
-        total_memories = len(project_memories)
-        low_confidence_memories = [m for m in project_memories if m.get('confidence_level', 10) < 5]
-        needs_validation = [m for m in project_memories if m.get('confidence_level', 10) < 7]
-        
-        # Basic conflict detection by content similarity
-        potential_conflicts = []
-        for i, memory1 in enumerate(project_memories):
-            for j, memory2 in enumerate(project_memories[i+1:], i+1):
-                content1 = memory1['content'].lower()
-                content2 = memory2['content'].lower()
-                
-                # Simple conflict detection: same category but contradictory keywords
-                if memory1['category'] == memory2['category']:
-                    conflict_pairs = [
-                        ('исправлено', 'проблема'), ('fixed', 'problem'),
-                        ('работает', 'не работает'), ('works', 'doesn\'t work'),
-                        ('завершено', 'в процессе'), ('completed', 'in progress')
-                    ]
-                    
-                    for word1, word2 in conflict_pairs:
-                        if word1 in content1 and word2 in content2:
-                            potential_conflicts.append((i, j))
-                            break
-        
-        validation_report = {
+        # Validate memories
+        validation_results = {
             "project_id": project_id,
-            "total_memories": total_memories,
-            "analysis": {
-                "low_confidence_memories": len(low_confidence_memories),
-                "needs_validation": len(needs_validation),
-                "potential_conflicts": len(potential_conflicts)
-            },
-            "categories_found": list(set(m.get('category', 'unknown') for m in project_memories)),
-            "confidence_distribution": {
-                "high_confidence": len([m for m in project_memories if m.get('confidence_level', 5) >= 8]),
-                "medium_confidence": len([m for m in project_memories if 5 <= m.get('confidence_level', 5) < 8]),
-                "low_confidence": len(low_confidence_memories)
-            },
+            "validation_timestamp": datetime.now().isoformat(),
+            "total_memories": len(project_memories),
+            "issues_found": [],
             "recommendations": []
         }
         
-        # Generate recommendations
-        if potential_conflicts:
-            validation_report["recommendations"].append(
-                f"⚠️  {len(potential_conflicts)} potential conflicts detected - review similar content for contradictions"
+        # Check for expired memories
+        expired_memories = []
+        for metadata in project_memories:
+            if is_memory_expired(metadata):
+                expired_memories.append({
+                    "content": metadata.get('content', '')[:100] + "...",
+                    "expired_at": metadata.get('expires_at'),
+                    "reason": "Memory has exceeded expiration date"
+                })
+        
+        if expired_memories:
+            validation_results["issues_found"].append({
+                "type": "expired_memories",
+                "count": len(expired_memories),
+                "details": expired_memories
+            })
+            validation_results["recommendations"].append(
+                f"Remove or refresh {len(expired_memories)} expired memories"
             )
+        
+        # Check for low confidence memories
+        low_confidence_memories = []
+        for metadata in project_memories:
+            confidence = metadata.get('confidence_level', 5)
+            if confidence < 5:
+                low_confidence_memories.append({
+                    "content": metadata.get('content', '')[:100] + "...",
+                    "confidence_level": confidence,
+                    "reason": f"Low confidence level ({confidence}/10)"
+                })
+        
         if low_confidence_memories:
-            validation_report["recommendations"].append(
-                f"🔍 {len(low_confidence_memories)} memories have low confidence - verify accuracy"
+            validation_results["issues_found"].append({
+                "type": "low_confidence_memories",
+                "count": len(low_confidence_memories),
+                "details": low_confidence_memories
+            })
+            validation_results["recommendations"].append(
+                f"Review and validate {len(low_confidence_memories)} low-confidence memories"
             )
-        if needs_validation:
-            validation_report["recommendations"].append(
-                f"✅ {len(needs_validation)} memories need accuracy validation"
+        
+        # Check for conflicted memories
+        conflicted_memories = []
+        for metadata in project_memories:
+            if metadata.get('status') == 'conflicted' or metadata.get('validation_needed'):
+                conflicted_memories.append({
+                    "content": metadata.get('content', '')[:100] + "...",
+                    "conflicts": metadata.get('conflicts', []),
+                    "reason": "Memory marked as conflicted or needing validation"
+                })
+        
+        if conflicted_memories:
+            validation_results["issues_found"].append({
+                "type": "conflicted_memories", 
+                "count": len(conflicted_memories),
+                "details": conflicted_memories
+            })
+            validation_results["recommendations"].append(
+                f"Resolve conflicts in {len(conflicted_memories)} memories using resolve_context_conflict"
             )
-            
-        if not validation_report["recommendations"]:
-            validation_report["recommendations"].append("✨ Project context appears to be in good condition!")
         
-        validation_report["note"] = "Analysis based on content heuristics due to basic API limitations"
+        # Check for deprecated memories that should be cleaned up
+        deprecated_memories = []
+        for metadata in project_memories:
+            if metadata.get('status') == 'deprecated':
+                deprecated_memories.append({
+                    "content": metadata.get('content', '')[:100] + "...",
+                    "deprecated_reason": metadata.get('deprecated_reason'),
+                    "superseded_by": metadata.get('superseded_by')
+                })
         
-        return json.dumps(validation_report, indent=2)
+        if deprecated_memories:
+            validation_results["issues_found"].append({
+                "type": "deprecated_memories",
+                "count": len(deprecated_memories),
+                "details": deprecated_memories
+            })
+            validation_results["recommendations"].append(
+                f"Consider cleaning up {len(deprecated_memories)} deprecated memories"
+            )
+        
+        # Overall health score
+        total_issues = len(expired_memories) + len(low_confidence_memories) + len(conflicted_memories)
+        health_score = max(0, 100 - (total_issues / len(project_memories) * 100))
+        validation_results["health_score"] = round(health_score, 1)
+        
+        if not validation_results["issues_found"]:
+            validation_results["status"] = "✅ Project context is healthy"
+        elif health_score > 80:
+            validation_results["status"] = "⚠️  Minor issues found"
+        elif health_score > 60:
+            validation_results["status"] = "🔶 Moderate issues require attention"
+        else:
+            validation_results["status"] = "🔴 Significant issues need immediate resolution"
+        
+        return json.dumps(validation_results, indent=2)
         
     except Exception as e:
         return f"❌ Error validating project context: {str(e)}"
@@ -374,65 +466,60 @@ async def resolve_context_conflict(
         # Parse memory IDs
         memory_ids = [id.strip() for id in conflicting_memory_ids.split(',')]
         
-        if len(memory_ids) < 2:
-            return "❌ Need at least 2 memory IDs to resolve conflicts"
+        if not memory_ids:
+            return "❌ No memory IDs provided for conflict resolution"
         
         # Get all memories to find the conflicted ones
         all_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID)
         memory_list = safe_get_memories(all_memories)
         
-        # Convert memory list to searchable format
-        memory_dict = {}
-        for i, memory_item in enumerate(memory_list):
-            metadata = get_memory_metadata(memory_item)
-            # Use index as ID if no real ID available
-            memory_id = metadata.get('memory_id', str(i))
-            memory_dict[memory_id] = metadata
-        
-        # Find conflicted memories
+        # Find memories by ID (we'll use content matching as a fallback)
         conflicted_memories = []
-        found_ids = []
-        for memory_id in memory_ids:
-            if memory_id in memory_dict:
-                conflicted_memories.append(memory_dict[memory_id])
-                found_ids.append(memory_id)
+        for memory_item in memory_list:
+            metadata = get_memory_metadata(memory_item)
+            memory_id = metadata.get('memory_id') or create_memory_id(metadata.get('content', ''))
+            
+            if memory_id in memory_ids:
+                conflicted_memories.append(metadata)
         
-        if len(conflicted_memories) < 2:
-            return f"❌ Could not find sufficient memory IDs. Found {len(conflicted_memories)} out of {len(memory_ids)}. Available IDs: {list(memory_dict.keys())[:10]}"
+        if not conflicted_memories:
+            return f"⚠️  No memories found matching the provided IDs: {conflicting_memory_ids}"
         
-        # Create new correct memory
-        enhanced_metadata = create_enhanced_metadata(
-            category="conflict_resolution",
-            confidence_level=9,
-            source="conflict_resolution",
-            project_id=conflicted_memories[0].get('project_id', 'general'),
-            tags=["conflict_resolved"]
-        )
+        # Extract project info from the first conflicted memory
+        project_id = conflicted_memories[0].get('project_id', 'unknown')
+        category = conflicted_memories[0].get('category', 'general')
         
-        # Add resolution information
-        enhanced_metadata.update({
-            'resolved_conflict_ids': found_ids,
-            'resolution_reason': resolution_reason,
-            'resolved_at': datetime.now().isoformat()
-        })
+        resolution_metadata = {
+            "project_id": project_id,
+            "category": category,
+            "confidence_level": 9,  # High confidence for manually resolved conflicts
+            "source": "conflict_resolution",
+            "status": "active",
+            "resolution_timestamp": datetime.now().isoformat(),
+            "resolution_reason": resolution_reason,
+            "resolved_conflicts": len(conflicted_memories),
+            "supersedes": memory_ids,
+            "tags": ["resolution", "conflict_resolved"]
+        }
         
-        # Save the correct information
-        save_result = mem0_client.add(
-            messages=[{"role": "user", "content": correct_content}],
-            user_id=DEFAULT_USER_ID,
-            metadata=enhanced_metadata
-        )
+        # Create a new memory with the correct content
+        messages = [{"role": "user", "content": correct_content}]
+        new_memory = mem0_client.add(messages, user_id=DEFAULT_USER_ID, metadata=resolution_metadata)
+        
+        # NOTE: mem0 doesn't support direct updates, so we can't actually deprecate the old memories
+        # In a production system, you'd want to implement a soft-delete mechanism
         
         resolution_summary = {
             "action": "conflict_resolved",
-            "conflicted_memories_count": len(conflicted_memories),
+            "timestamp": datetime.now().isoformat(),
+            "new_correct_content": correct_content,
             "resolution_reason": resolution_reason,
-            "new_memory_created": True,
-            "conflicted_content_sample": [m['content'][:100] + "..." for m in conflicted_memories[:3]],
-            "correct_content": correct_content[:200] + "..." if len(correct_content) > 200 else correct_content
+            "conflicted_memory_count": len(conflicted_memories),
+            "resolution_confidence": "9/10 (manually resolved)",
+            "note": "Conflicted memories remain in storage but resolution is recorded with high confidence"
         }
         
-        return json.dumps(resolution_summary, indent=2)
+        return f"✅ Conflict resolved successfully!\n{json.dumps(resolution_summary, indent=2)}"
         
     except Exception as e:
         return f"❌ Error resolving context conflict: {str(e)}"
@@ -454,146 +541,157 @@ async def audit_memory_quality(project_id: Optional[str] = None) -> str:
         all_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID)
         memory_list = safe_get_memories(all_memories)
         
-        # Process memories and filter by project if specified
-        processed_memories = []
-        for memory_item in memory_list:
-            metadata = get_memory_metadata(memory_item)
-            if not project_id or metadata.get('project_id') == project_id:
-                processed_memories.append(metadata)
-        
-        if not processed_memories:
-            scope = f"project '{project_id}'" if project_id else "database"
+        # Filter by project if specified
+        if project_id:
+            filtered_memories = []
+            for memory_item in memory_list:
+                metadata = get_memory_metadata(memory_item)
+                if metadata.get('project_id') == project_id:
+                    filtered_memories.append(metadata)
+            memory_list = filtered_memories
+            
+        if not memory_list:
+            scope = f"project '{project_id}'" if project_id else "entire memory database"
             return f"📋 No memories found in {scope}"
         
-        # Quality analysis
-        total_memories = len(processed_memories)
-        
-        # Categorize issues
-        expired_memories = [m for m in processed_memories if m.get('expires_at') and 
-                          datetime.fromisoformat(m['expires_at'].replace('Z', '+00:00')) < datetime.now()]
-        conflicted_memories = [m for m in processed_memories if m.get('status') == 'conflicted']
-        deprecated_memories = [m for m in processed_memories if m.get('status') == 'deprecated']
-        low_confidence_memories = [m for m in processed_memories if m.get('confidence_level', 10) < 5]
-        needs_validation = [m for m in processed_memories if m.get('confidence_level', 10) < 7]
-        
-        # Confidence distribution
-        confidence_distribution = {}
-        for memory in processed_memories:
-            conf = memory.get('confidence_level', 5)
-            confidence_distribution[conf] = confidence_distribution.get(conf, 0) + 1
-        
-        # Category distribution
-        category_distribution = {}
-        for memory in processed_memories:
-            cat = memory.get('category', 'unknown')
-            category_distribution[cat] = category_distribution.get(cat, 0) + 1
-        
-        # Age analysis - since we don't have reliable creation dates, use basic heuristics
-        old_memories = []
-        for memory in processed_memories:
-            updated_at = memory.get('updated_at')
-            if updated_at:
-                try:
-                    updated_date = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
-                    days_old = (datetime.now().replace(tzinfo=updated_date.tzinfo) - updated_date).days
-                    if days_old > 60:  # Older than 2 months
-                        old_memories.append(memory)
-                except (ValueError, TypeError):
-                    pass
-        
-        # Generate comprehensive audit report
-        audit_report = {
-            "audit_scope": f"project '{project_id}'" if project_id else "entire database",
+        # Comprehensive quality audit
+        audit_results = {
+            "audit_scope": project_id if project_id else "all_projects",
             "audit_timestamp": datetime.now().isoformat(),
-            "summary": {
-                "total_memories": total_memories,
-                "active_memories": total_memories - len(deprecated_memories),
-                "deprecated_memories": len(deprecated_memories)
-            },
-            "quality_issues": {
-                "expired_memories": len(expired_memories),
-                "conflicted_memories": len(conflicted_memories),
-                "low_confidence_memories": len(low_confidence_memories),
-                "needs_validation": len(needs_validation),
-                "old_memories_60_days": len(old_memories)
-            },
-            "distributions": {
-                "confidence_levels": confidence_distribution,
-                "categories": category_distribution
-            },
-            "health_score": 0,
-            "recommendations": []
+            "total_memories_analyzed": len(memory_list),
+            "quality_metrics": {},
+            "issues_by_category": {},
+            "recommendations": [],
+            "overall_quality_score": 0
         }
         
-        # Calculate health score (0-100)
-        active_memories = total_memories - len(deprecated_memories)
-        if active_memories > 0:
-            issue_ratio = (
-                len(expired_memories) + 
-                len(conflicted_memories) + 
-                len(low_confidence_memories)
-            ) / active_memories
-            audit_report["health_score"] = max(0, int((1 - issue_ratio) * 100))
+        # Initialize counters
+        expired_count = 0
+        low_confidence_count = 0
+        high_confidence_count = 0
+        conflicted_count = 0
+        deprecated_count = 0
+        no_metadata_count = 0
+        
+        # Detailed analysis
+        for memory_item in memory_list:
+            metadata = get_memory_metadata(memory_item)
+            
+            # Check expiration
+            if is_memory_expired(metadata):
+                expired_count += 1
+                
+            # Check confidence levels
+            confidence = metadata.get('confidence_level', 5)
+            if confidence < 5:
+                low_confidence_count += 1
+            elif confidence >= 8:
+                high_confidence_count += 1
+                
+            # Check status
+            status = metadata.get('status', 'unknown')
+            if status == 'conflicted' or metadata.get('validation_needed'):
+                conflicted_count += 1
+            elif status == 'deprecated':
+                deprecated_count += 1
+                
+            # Check for missing metadata
+            if not metadata.get('project_id') or not metadata.get('category'):
+                no_metadata_count += 1
+        
+        # Calculate quality metrics
+        audit_results["quality_metrics"] = {
+            "confidence_distribution": {
+                "high_confidence": high_confidence_count,
+                "medium_confidence": len(memory_list) - high_confidence_count - low_confidence_count,
+                "low_confidence": low_confidence_count
+            },
+            "status_distribution": {
+                "active": len(memory_list) - deprecated_count - conflicted_count,
+                "conflicted": conflicted_count,
+                "deprecated": deprecated_count
+            },
+            "data_quality": {
+                "expired_memories": expired_count,
+                "missing_metadata": no_metadata_count,
+                "well_documented": len(memory_list) - no_metadata_count
+            }
+        }
+        
+        # Identify issues by category
+        if expired_count > 0:
+            audit_results["issues_by_category"]["expired_data"] = {
+                "count": expired_count,
+                "severity": "medium",
+                "description": f"{expired_count} memories have expired and may contain outdated information"
+            }
+            
+        if low_confidence_count > 0:
+            audit_results["issues_by_category"]["low_confidence"] = {
+                "count": low_confidence_count,
+                "severity": "medium",
+                "description": f"{low_confidence_count} memories have low confidence scores (<5/10)"
+            }
+            
+        if conflicted_count > 0:
+            audit_results["issues_by_category"]["conflicts"] = {
+                "count": conflicted_count,
+                "severity": "high",
+                "description": f"{conflicted_count} memories are marked as conflicted and need resolution"
+            }
+            
+        if no_metadata_count > 0:
+            audit_results["issues_by_category"]["missing_metadata"] = {
+                "count": no_metadata_count,
+                "severity": "low",
+                "description": f"{no_metadata_count} memories lack proper categorization metadata"
+            }
         
         # Generate recommendations
-        if expired_memories:
-            audit_report["recommendations"].append({
-                "priority": "HIGH",
-                "issue": f"{len(expired_memories)} expired memories",
-                "action": "Remove or update expired information to prevent outdated context"
-            })
+        if expired_count > 0:
+            audit_results["recommendations"].append(
+                f"🗓️  Review and refresh {expired_count} expired memories"
+            )
+            
+        if low_confidence_count > 0:
+            audit_results["recommendations"].append(
+                f"🔍 Validate and improve confidence for {low_confidence_count} low-confidence memories"
+            )
+            
+        if conflicted_count > 0:
+            audit_results["recommendations"].append(
+                f"⚠️  Resolve {conflicted_count} conflicted memories using resolve_context_conflict"
+            )
+            
+        if no_metadata_count > 0:
+            audit_results["recommendations"].append(
+                f"📝 Add proper metadata to {no_metadata_count} memories for better organization"
+            )
+            
+        # Calculate overall quality score
+        total_issues = expired_count + low_confidence_count + conflicted_count + no_metadata_count
+        quality_score = max(0, 100 - (total_issues / len(memory_list) * 100))
+        audit_results["overall_quality_score"] = round(quality_score, 1)
         
-        if conflicted_memories:
-            audit_report["recommendations"].append({
-                "priority": "CRITICAL",
-                "issue": f"{len(conflicted_memories)} conflicted memories",
-                "action": "Use resolve_context_conflict to resolve contradictions immediately"
-            })
-        
-        if low_confidence_memories:
-            audit_report["recommendations"].append({
-                "priority": "MEDIUM",
-                "issue": f"{len(low_confidence_memories)} low confidence memories",
-                "action": "Review and either verify or remove uncertain information"
-            })
-        
-        if needs_validation:
-            audit_report["recommendations"].append({
-                "priority": "MEDIUM",
-                "issue": f"{len(needs_validation)} memories need validation",
-                "action": "Validate accuracy of flagged memories"
-            })
-        
-        if old_memories:
-            audit_report["recommendations"].append({
-                "priority": "LOW",
-                "issue": f"{len(old_memories)} memories older than 60 days",
-                "action": "Review relevance of old memories for current project state"
-            })
-        
-        if audit_report["health_score"] >= 90:
-            audit_report["recommendations"].append({
-                "priority": "INFO",
-                "issue": "Memory quality is excellent",
-                "action": "Continue current memory management practices"
-            })
-        elif audit_report["health_score"] >= 70:
-            audit_report["recommendations"].append({
-                "priority": "INFO", 
-                "issue": "Memory quality is good",
-                "action": "Address minor issues to improve context accuracy"
-            })
+        # Determine overall status
+        if quality_score >= 90:
+            audit_results["overall_status"] = "✨ Excellent - Memory quality is very high"
+        elif quality_score >= 80:
+            audit_results["overall_status"] = "✅ Good - Minor issues that can be addressed"
+        elif quality_score >= 70:
+            audit_results["overall_status"] = "⚠️  Fair - Several issues need attention"
+        elif quality_score >= 60:
+            audit_results["overall_status"] = "🔶 Poor - Significant quality problems"
         else:
-            audit_report["recommendations"].append({
-                "priority": "CRITICAL",
-                "issue": "Memory quality needs attention",
-                "action": "Urgent cleanup required to ensure reliable context"
-            })
-        
-        return json.dumps(audit_report, indent=2)
+            audit_results["overall_status"] = "🔴 Critical - Major quality overhaul needed"
+            
+        if not audit_results["recommendations"]:
+            audit_results["recommendations"].append("🎉 Memory quality is excellent - no action needed!")
+            
+        return json.dumps(audit_results, indent=2)
         
     except Exception as e:
-        return f"❌ Error during memory quality audit: {str(e)}"
+        return f"❌ Error auditing memory quality: {str(e)}"
 
 @mcp.tool()
 async def save_project_milestone(
@@ -618,42 +716,33 @@ async def save_project_milestone(
     try:
         mem0_client = get_mem0_client()
         
-        # Validate milestone type
-        valid_types = ["architecture_decision", "problem_identified", "solution_implemented", "status_change"]
-        if milestone_type not in valid_types:
-            return f"❌ Invalid milestone_type. Must be one of: {', '.join(valid_types)}"
-        
-        # Parse tags
+        # Parse tags and add milestone tag
         tag_list = [tag.strip() for tag in tags.split(',')] if tags else []
-        tag_list.append(f"milestone_{milestone_type}")
-        tag_list.append("project_milestone")
-        
-        # Get existing project memories to check for similar milestones
+        if 'milestone' not in tag_list:
+            tag_list.append('milestone')
+            
+        # Get existing milestones to check for superseding
         all_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID)
         memory_list = safe_get_memories(all_memories)
         
-        # Find previous milestones of the same type for this project
-        similar_milestones = []
+        # Find existing milestones of the same type for this project
+        existing_milestones = []
         for memory_item in memory_list:
             metadata = get_memory_metadata(memory_item)
             if (metadata.get('project_id') == project_id and 
-                metadata.get('category') == milestone_type and
-                metadata.get('status') != 'deprecated'):
-                similar_milestones.append(metadata)
+                metadata.get('milestone_type') == milestone_type and
+                'milestone' in metadata.get('tags', [])):
+                existing_milestones.append(metadata)
         
-        # Mark previous similar milestones as superseded if this is a status change
-        superseded_count = 0
-        if milestone_type == "status_change" and similar_milestones:
-            # In a real implementation, we'd update the metadata
-            # For now, we'll track that they should be superseded
-            superseded_count = len(similar_milestones)
+        # Count milestones that will be superseded
+        superseded_count = len(existing_milestones)
         
-        # Create enhanced metadata for milestone
+        # Create milestone metadata
         milestone_metadata = create_enhanced_metadata(
             project_id=project_id,
-            category=milestone_type,
-            confidence_level=impact_level,
-            source="project_milestone",
+            category="milestone",
+            confidence_level=9,  # Milestones are high confidence
+            source="milestone_tracking",
             tags=tag_list
         )
         
@@ -845,16 +934,47 @@ async def track_project_evolution(project_id: str, category: Optional[str] = Non
 
 async def main():
     """Run the FastMCP server with transport from environment variables."""
+    global _server_initialized
+    
     # Read environment variables
     transport = os.getenv("TRANSPORT", "stdio").lower()
     host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "8050"))
     
+    print(f"🔧 Initializing MCP mem0 server...")
+    
+    # Pre-initialize the mem0 client to catch any issues early
+    try:
+        mem0_client = get_mem0_client()
+        # Test the connection
+        _ = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
+        print(f"✅ Mem0 client initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize Mem0 client: {str(e)}")
+        print(f"🔄 Retrying in 2 seconds...")
+        await asyncio.sleep(2.0)
+        try:
+            mem0_client = get_mem0_client()
+            _ = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
+            print(f"✅ Mem0 client initialized successfully on retry")
+        except Exception as retry_e:
+            print(f"❌ Failed to initialize Mem0 client on retry: {str(retry_e)}")
+            return
+    
+    # Mark server as initialized
+    _server_initialized = True
+    print(f"🎯 Server initialization complete")
+    
+    # Start the server
     if transport == "sse":
         print(f"🚀 Starting MCP server with SSE transport on {host}:{port}")
+        # Add a small delay to ensure everything is ready
+        await asyncio.sleep(0.5)
         await mcp.run_async(transport="sse", host=host, port=port)
     else:
         print(f"🚀 Starting MCP server with STDIO transport")
+        # Add a small delay to ensure everything is ready
+        await asyncio.sleep(0.5)
         await mcp.run_async(transport="stdio")
 
 if __name__ == "__main__":
