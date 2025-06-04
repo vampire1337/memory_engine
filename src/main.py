@@ -37,24 +37,56 @@ DEFAULT_USER_ID = "user"
 # Global initialization flag to prevent race conditions
 _server_initialized = False
 _initialization_lock = asyncio.Lock()
+_initialization_attempts = 0
+_max_initialization_attempts = 5
 
 async def ensure_server_initialized():
     """Ensure the server is properly initialized before processing requests."""
-    global _server_initialized
+    global _server_initialized, _initialization_attempts
+    
     if not _server_initialized:
         async with _initialization_lock:
             if not _server_initialized:
-                # Wait a bit for initialization to complete
-                await asyncio.sleep(0.5)
-                # Test the mem0 client to ensure it's working
-                try:
-                    mem0_client = get_mem0_client()
-                    # Simple test to ensure client is working
-                    _ = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
-                    _server_initialized = True
-                except Exception as e:
-                    await asyncio.sleep(1.0)  # Wait longer if there's an issue
-                    raise RuntimeError(f"Server initialization failed: {str(e)}")
+                _initialization_attempts += 1
+                print(f"🔧 Initializing server (attempt {_initialization_attempts}/{_max_initialization_attempts})...")
+                
+                # Progressive delay for initialization
+                initial_delay = min(2.0 * _initialization_attempts, 10.0)
+                await asyncio.sleep(initial_delay)
+                
+                # Test the mem0 client multiple times to ensure it's stable
+                max_test_attempts = 3
+                for test_attempt in range(max_test_attempts):
+                    try:
+                        print(f"🧪 Testing mem0 client (test {test_attempt + 1}/{max_test_attempts})...")
+                        mem0_client = get_mem0_client()
+                        
+                        # Comprehensive client testing
+                        test_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
+                        print(f"✅ get_all test passed")
+                        
+                        test_search = mem0_client.search("test", user_id=DEFAULT_USER_ID, limit=1)  
+                        print(f"✅ search test passed")
+                        
+                        # Additional delay to ensure stability
+                        await asyncio.sleep(0.5)
+                        
+                        print(f"✅ mem0 client stable after {test_attempt + 1} tests")
+                        break
+                        
+                    except Exception as e:
+                        print(f"❌ mem0 client test {test_attempt + 1} failed: {str(e)}")
+                        if test_attempt == max_test_attempts - 1:
+                            if _initialization_attempts >= _max_initialization_attempts:
+                                raise RuntimeError(f"Server initialization failed after {_max_initialization_attempts} attempts: {str(e)}")
+                            else:
+                                print(f"🔄 Will retry initialization...")
+                                return await ensure_server_initialized()
+                        await asyncio.sleep(1.0)
+                
+                # Mark as initialized only after all tests pass
+                _server_initialized = True
+                print(f"🎯 Server initialization complete after {_initialization_attempts} attempts")
     
     if not _server_initialized:
         raise RuntimeError("Server is still initializing, please retry in a moment")
@@ -241,39 +273,101 @@ async def get_accurate_context(
         limit: Maximum number of results to return
     """
     try:
+        # CRITICAL: Ensure server is fully initialized before proceeding
+        await ensure_server_initialized()
+        
+        print(f"🔍 DEBUG: get_accurate_context called with query='{query}', project_id={project_id}")
+        
         mem0_client = get_mem0_client()
+        print(f"✅ DEBUG: mem0_client obtained successfully")
         
         # Get all memories to filter through
         all_memories = mem0_client.get_all(user_id=DEFAULT_USER_ID)
+        print(f"📋 DEBUG: all_memories type: {type(all_memories)}, content: {str(all_memories)[:200]}...")
+        
         memory_list = safe_get_memories(all_memories)
+        print(f"📋 DEBUG: memory_list type: {type(memory_list)}, length: {len(memory_list) if memory_list else 'None'}")
+        
+        if memory_list:
+            print(f"📋 DEBUG: First memory item type: {type(memory_list[0]) if len(memory_list) > 0 else 'empty'}")
+            print(f"📋 DEBUG: First memory item: {str(memory_list[0])[:100] if len(memory_list) > 0 else 'empty'}...")
         
         # Filter by project if specified and process for accuracy
         filtered_memories = []
-        for memory_item in memory_list:
+        for i, memory_item in enumerate(memory_list):
+            print(f"🔄 DEBUG: Processing memory_item {i}: type={type(memory_item)}, is_none={memory_item is None}")
+            
+            if memory_item is None:  # Skip None objects
+                print(f"⚠️ DEBUG: Skipping None memory_item at index {i}")
+                continue
+                
+            print(f"🔍 DEBUG: Calling get_memory_metadata for item {i}")
             metadata = get_memory_metadata(memory_item)
+            print(f"📊 DEBUG: metadata type: {type(metadata)}, is_none: {metadata is None}")
+            
+            if metadata is None:
+                print(f"⚠️ DEBUG: metadata is None for item {i}, skipping")
+                continue
+                
+            print(f"📊 DEBUG: metadata keys: {list(metadata.keys()) if isinstance(metadata, dict) else 'not a dict'}")
             
             # Skip expired memories
+            print(f"🕐 DEBUG: Checking if memory expired...")
             if is_memory_expired(metadata):
+                print(f"⏰ DEBUG: Memory {i} is expired, skipping")
                 continue
                 
             # Filter by project if specified
-            if project_id and metadata.get('project_id') != project_id:
+            print(f"🏷️ DEBUG: Checking project filter...")
+            project_id_from_metadata = metadata.get('project_id') if metadata else None
+            print(f"🏷️ DEBUG: project_id_from_metadata: {project_id_from_metadata}")
+            
+            if project_id and project_id_from_metadata != project_id:
+                print(f"🏷️ DEBUG: Project mismatch, skipping: expected={project_id}, got={project_id_from_metadata}")
                 continue
                 
             # Filter by confidence level
-            confidence = metadata.get('confidence_level', 5)
+            print(f"📈 DEBUG: Checking confidence level...")
+            confidence = metadata.get('confidence_level', 5) if metadata else 5
+            print(f"📈 DEBUG: confidence: {confidence}, min_confidence: {min_confidence}")
+            
             if confidence >= min_confidence:
                 # Check if not deprecated
-                if metadata.get('status') != 'deprecated':
+                status = metadata.get('status') if metadata else 'active'
+                print(f"📊 DEBUG: status: {status}")
+                
+                if status != 'deprecated':
+                    print(f"✅ DEBUG: Adding memory {i} to filtered_memories")
                     filtered_memories.append(metadata)
+                else:
+                    print(f"🗑️ DEBUG: Memory {i} is deprecated, skipping")
+            else:
+                print(f"📉 DEBUG: Confidence too low for memory {i}, skipping")
+        
+        print(f"📋 DEBUG: Filtered memories count: {len(filtered_memories)}")
         
         # If we have too few results, do a semantic search as backup
         if len(filtered_memories) < limit:
+            print(f"🔍 DEBUG: Need more results, doing semantic search...")
             search_results = mem0_client.search(query, user_id=DEFAULT_USER_ID, limit=limit * 2)
-            search_list = safe_get_memories(search_results)
+            print(f"🔍 DEBUG: search_results type: {type(search_results)}")
             
-            for memory_item in search_list:
+            search_list = safe_get_memories(search_results)
+            print(f"🔍 DEBUG: search_list length: {len(search_list) if search_list else 'None'}")
+            
+            for i, memory_item in enumerate(search_list):
+                print(f"🔄 DEBUG: Processing search memory_item {i}")
+                
+                if memory_item is None:  # Skip None objects
+                    print(f"⚠️ DEBUG: Skipping None search memory_item at index {i}")
+                    continue
+                    
                 metadata = get_memory_metadata(memory_item)
+                print(f"📊 DEBUG: search metadata type: {type(metadata)}")
+                
+                if metadata is None:
+                    print(f"⚠️ DEBUG: search metadata is None for item {i}, skipping")
+                    continue
                 
                 # Apply same filters
                 if (not is_memory_expired(metadata) and
@@ -287,6 +381,7 @@ async def get_accurate_context(
                         filtered_memories.append(metadata)
         
         # Sort by confidence level and limit results
+        print(f"📋 DEBUG: Sorting {len(filtered_memories)} memories by confidence...")
         filtered_memories.sort(key=lambda x: x.get('confidence_level', 0), reverse=True)
         filtered_memories = filtered_memories[:limit]
         
@@ -303,9 +398,14 @@ async def get_accurate_context(
             "accurate_context": filtered_memories
         }
         
+        print(f"✅ DEBUG: Returning successful result with {len(filtered_memories)} memories")
         return json.dumps(context_data, indent=2)
         
     except Exception as e:
+        print(f"❌ DEBUG: Exception in get_accurate_context: {str(e)}")
+        print(f"❌ DEBUG: Exception type: {type(e)}")
+        import traceback
+        print(f"❌ DEBUG: Traceback: {traceback.format_exc()}")
         return f"❌ Error retrieving accurate context: {str(e)}"
 
 @mcp.tool()
@@ -319,6 +419,9 @@ async def validate_project_context(project_id: str) -> str:
         project_id: The project identifier to validate
     """
     try:
+        # CRITICAL: Ensure server is fully initialized before proceeding
+        await ensure_server_initialized()
+        
         mem0_client = get_mem0_client()
         
         # Get all memories
@@ -328,6 +431,9 @@ async def validate_project_context(project_id: str) -> str:
         # Filter project-specific memories
         project_memories = []
         for memory_item in memory_list:
+            if memory_item is None:  # Skip None objects
+                continue
+                
             metadata = get_memory_metadata(memory_item)
             if metadata.get('project_id') == project_id:
                 project_memories.append(metadata)
@@ -347,6 +453,8 @@ async def validate_project_context(project_id: str) -> str:
         # Check for expired memories
         expired_memories = []
         for metadata in project_memories:
+            if metadata is None:  # Skip None metadata
+                continue
             if is_memory_expired(metadata):
                 expired_memories.append({
                     "content": metadata.get('content', '')[:100] + "...",
@@ -461,6 +569,9 @@ async def resolve_context_conflict(
         resolution_reason: Explanation of why this resolution was chosen
     """
     try:
+        # CRITICAL: Ensure server is fully initialized before proceeding
+        await ensure_server_initialized()
+        
         mem0_client = get_mem0_client()
         
         # Parse memory IDs
@@ -476,6 +587,9 @@ async def resolve_context_conflict(
         # Find memories by ID (we'll use content matching as a fallback)
         conflicted_memories = []
         for memory_item in memory_list:
+            if memory_item is None:  # Skip None objects
+                continue
+                
             metadata = get_memory_metadata(memory_item)
             memory_id = metadata.get('memory_id') or create_memory_id(metadata.get('content', ''))
             
@@ -535,6 +649,9 @@ async def audit_memory_quality(project_id: Optional[str] = None) -> str:
         project_id: Optional project ID to limit audit scope
     """
     try:
+        # CRITICAL: Ensure server is fully initialized before proceeding
+        await ensure_server_initialized()
+        
         mem0_client = get_mem0_client()
         
         # Get all memories
@@ -545,6 +662,9 @@ async def audit_memory_quality(project_id: Optional[str] = None) -> str:
         if project_id:
             filtered_memories = []
             for memory_item in memory_list:
+                if memory_item is None:  # Skip None objects
+                    continue
+                    
                 metadata = get_memory_metadata(memory_item)
                 if metadata.get('project_id') == project_id:
                     filtered_memories.append(metadata)
@@ -575,6 +695,9 @@ async def audit_memory_quality(project_id: Optional[str] = None) -> str:
         
         # Detailed analysis
         for memory_item in memory_list:
+            if memory_item is None:  # Skip None objects
+                continue
+                
             metadata = get_memory_metadata(memory_item)
             
             # Check expiration
@@ -779,6 +902,9 @@ async def get_current_project_state(project_id: str) -> str:
         project_id: The project identifier to get state for
     """
     try:
+        # CRITICAL: Ensure server is fully initialized before proceeding
+        await ensure_server_initialized()
+        
         mem0_client = get_mem0_client()
         
         # Get all memories
@@ -788,6 +914,9 @@ async def get_current_project_state(project_id: str) -> str:
         # Process memories and filter by project and active status
         project_memories = []
         for memory_item in memory_list:
+            if memory_item is None:  # Skip None objects
+                continue
+                
             metadata = get_memory_metadata(memory_item)
             
             # Filter by project and exclude deprecated/expired
@@ -865,6 +994,9 @@ async def track_project_evolution(project_id: str, category: Optional[str] = Non
         category: Optional category to focus on (architecture/problem/solution/status/decision)
     """
     try:
+        # CRITICAL: Ensure server is fully initialized before proceeding
+        await ensure_server_initialized()
+        
         mem0_client = get_mem0_client()
         
         # Get all memories including deprecated ones
@@ -874,6 +1006,9 @@ async def track_project_evolution(project_id: str, category: Optional[str] = Non
         # Process memories and filter by project (include deprecated to show evolution)
         project_memories = []
         for memory_item in memory_list:
+            if memory_item is None:  # Skip None objects
+                continue
+                
             metadata = get_memory_metadata(memory_item)
             
             # Filter by project and optionally by category
@@ -941,40 +1076,76 @@ async def main():
     host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "8050"))
     
-    print(f"🔧 Initializing MCP mem0 server...")
+    print(f"🔧 CRITICAL: Pre-initializing MCP BEFORE starting HTTP server...")
     
-    # Pre-initialize the mem0 client to catch any issues early
-    try:
-        mem0_client = get_mem0_client()
-        # Test the connection
-        _ = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
-        print(f"✅ Mem0 client initialized successfully")
-    except Exception as e:
-        print(f"❌ Failed to initialize Mem0 client: {str(e)}")
-        print(f"🔄 Retrying in 2 seconds...")
-        await asyncio.sleep(2.0)
+    # ===== PHASE 1: COMPLETE MCP INITIALIZATION BEFORE ANY HTTP =====
+    max_init_rounds = 3
+    mcp_ready = False
+    
+    for init_round in range(max_init_rounds):
         try:
+            print(f"🏗️ MCP Pre-initialization round {init_round + 1}/{max_init_rounds}")
+            
+            # Extended delay before testing
+            await asyncio.sleep(3.0 + init_round * 2.0)
+            
+            # Test mem0 client extensively
             mem0_client = get_mem0_client()
-            _ = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
-            print(f"✅ Mem0 client initialized successfully on retry")
-        except Exception as retry_e:
-            print(f"❌ Failed to initialize Mem0 client on retry: {str(retry_e)}")
-            return
+            
+            print(f"🧪 Comprehensive MCP validation tests...")
+            
+            # Test 1: Basic connectivity
+            test_result_1 = mem0_client.get_all(user_id=DEFAULT_USER_ID, limit=1)
+            print(f"✅ Test 1 (get_all): PASSED")
+            
+            # Test 2: Search functionality  
+            test_result_2 = mem0_client.search("test", user_id=DEFAULT_USER_ID, limit=1)
+            print(f"✅ Test 2 (search): PASSED")
+            
+            # Test 3: Add functionality
+            test_messages = [{"role": "user", "content": "MCP Pre-initialization test"}]
+            test_result_3 = mem0_client.add(test_messages, user_id=DEFAULT_USER_ID)
+            print(f"✅ Test 3 (add): PASSED")
+            
+            # Test 4: Ensure server initialization function works
+            await ensure_server_initialized()
+            print(f"✅ Test 4 (ensure_server_initialized): PASSED")
+            
+            # Additional stability delay
+            await asyncio.sleep(3.0)
+            
+            print(f"✅ MCP Pre-initialization round {init_round + 1} completed successfully")
+            mcp_ready = True
+            break
+            
+        except Exception as e:
+            print(f"❌ MCP Pre-initialization round {init_round + 1} failed: {str(e)}")
+            if init_round == max_init_rounds - 1:
+                print(f"❌ All MCP pre-initialization rounds failed!")
+                print(f"🚨 CRITICAL: Cannot start HTTP server without MCP ready")
+                return
+            else:
+                print(f"🔄 Retrying MCP pre-initialization...")
+                await asyncio.sleep(5.0)
     
-    # Mark server as initialized
+    if not mcp_ready:
+        print(f"🚨 CRITICAL: MCP initialization failed, aborting server startup")
+        return
+        
+    # Mark server as fully initialized BEFORE starting HTTP
     _server_initialized = True
-    print(f"🎯 Server initialization complete")
+    print(f"🎯 MCP FULLY INITIALIZED - ready to accept connections")
     
-    # Start the server
+    # ===== PHASE 2: START HTTP SERVER ONLY AFTER MCP IS READY =====
+    print(f"🚀 PHASE 2: Starting HTTP server NOW that MCP is ready...")
+    
     if transport == "sse":
-        print(f"🚀 Starting MCP server with SSE transport on {host}:{port}")
-        # Add a small delay to ensure everything is ready
-        await asyncio.sleep(0.5)
+        print(f"🌐 Starting HTTP server with SSE transport on {host}:{port}")
+        print(f"✅ MCP is ready - HTTP server will NOT cause race conditions")
         await mcp.run_async(transport="sse", host=host, port=port)
     else:
-        print(f"🚀 Starting MCP server with STDIO transport")
-        # Add a small delay to ensure everything is ready
-        await asyncio.sleep(0.5)
+        print(f"📡 Starting server with STDIO transport")
+        print(f"✅ MCP is ready - STDIO server will NOT cause race conditions")
         await mcp.run_async(transport="stdio")
 
 if __name__ == "__main__":
