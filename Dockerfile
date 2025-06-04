@@ -14,6 +14,11 @@ COPY . .
 RUN python -m venv .venv
 RUN uv pip install -e .
 
+# Set default environment variables
+ENV TRANSPORT=sse
+ENV HOST=0.0.0.0
+ENV PORT=${PORT}
+
 EXPOSE ${PORT}
 
 # Command to run the MCP server

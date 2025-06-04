@@ -1,127 +1,200 @@
-<h1 align="center">MCP-Mem0: Long-Term Memory for AI Agents</h1>
+# MCP-Mem0: Enhanced Memory System с Гарантированной Точностью
 
 <p align="center">
   <img src="public/Mem0AndMCP.png" alt="Mem0 and MCP Integration" width="600">
 </p>
 
-A template implementation of the [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server integrated with [Mem0](https://mem0.ai) for providing AI agents with persistent memory capabilities.
+Продвинутая реализация [Model Context Protocol (MCP)](https://modelcontextprotocol.io) сервера с интеграцией [Mem0](https://mem0.ai) для предоставления AI агентам **гарантированно точной и актуальной памяти**.
 
-Use this as a reference point to build your MCP servers yourself, or give this as an example to an AI coding assistant and tell it to follow this example for structure and code correctness!
+**Основной принцип: Неточный контекст хуже отсутствия контекста.**
 
-## Overview
+## 🚀 Что Нового в Enhanced Memory System
 
-This project demonstrates how to build an MCP server that enables AI agents to store, retrieve, and search memories using semantic search. It serves as a practical template for creating your own MCP servers, simply using Mem0 and a practical example.
+### ✅ Система Версионирования и Конфликт-Детекции
+- Автоматическое обнаружение противоречивой информации
+- Версионирование записей с timestamp и audit trail
+- Система разрешения конфликтов с manual approval
 
-The implementation follows the best practices laid out by Anthropic for building MCP servers, allowing seamless integration with any MCP-compatible client.
+### ✅ Гарантии Качества Контекста  
+- Confidence scoring (1-10) для каждой записи
+- Автоматическая фильтрация устаревшей информации
+- Валидация актуальности на основе времени и категории
 
-## Features
+### ✅ Проектное Управление Памятью
+- Изоляция памяти по проектам
+- Milestone tracking для ключевых решений
+- Evolution tracking для понимания прогресса
 
-The server provides three essential memory management tools:
+## Возможности
 
-1. **`save_memory`**: Store any information in long-term memory with semantic indexing
-2. **`get_all_memories`**: Retrieve all stored memories for comprehensive context
-3. **`search_memories`**: Find relevant memories using semantic search
+Система предоставляет **11 инструментов для управления памятью**:
 
-## Prerequisites
+### 🔧 Основные Инструменты Точности
+1. **`save_verified_memory`** - Сохранение с автоматическим conflict detection
+2. **`get_accurate_context`** - Поиск только проверенной информации  
+3. **`validate_project_context`** - Аудит качества памяти проекта
+4. **`resolve_context_conflict`** - Разрешение противоречий между записями
+5. **`audit_memory_quality`** - Комплексный анализ качества всей базы
+
+### 📊 Проектные Инструменты
+6. **`save_project_milestone`** - Ключевые моменты и решения
+7. **`get_current_project_state`** - Актуальное состояние проекта
+8. **`track_project_evolution`** - История развития понимания
+
+### 📜 Базовые Инструменты (совместимость)
+9. **`save_memory`** - Стандартное сохранение в память
+10. **`get_all_memories`** - Получение всех записей
+11. **`search_memories`** - Семантический поиск
+
+## Быстрый Старт
+
+### Предварительные Требования
 
 - Python 3.12+
-- Supabase or any PostgreSQL database (for vector storage of memories)
-- API keys for your chosen LLM provider (OpenAI, OpenRouter, or Ollama)
-- Docker if running the MCP server as a container (recommended)
+- Supabase или PostgreSQL база данных (для векторного хранения)
+- API ключи для LLM provider (OpenAI, OpenRouter, или Ollama)
+- Docker (рекомендуется)
 
-## Installation
+### Установка
 
-### Using uv
+#### Используя uv
 
-1. Install uv if you don't have it:
-   ```bash
-   pip install uv
-   ```
+```bash
+# Установить uv
+pip install uv
 
-2. Clone this repository:
-   ```bash
-   git clone https://github.com/coleam00/mcp-mem0.git
-   cd mcp-mem0
-   ```
+# Клонировать репозиторий
+git clone https://github.com/yourusername/mcp-mem0-enhanced.git
+cd mcp-mem0-enhanced
 
-3. Install dependencies:
-   ```bash
-   uv pip install -e .
-   ```
+# Установить зависимости
+uv pip install -e .
 
-4. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
+# Настроить окружение
+cp .env.example .env
+# Отредактировать .env файл с вашими настройками
+```
 
-5. Configure your environment variables in the `.env` file (see Configuration section)
+#### Используя Docker (Рекомендуется)
 
-### Using Docker (Recommended)
+```bash
+docker build -t mcp/mem0-enhanced --build-arg PORT=8050 .
+```
 
-1. Build the Docker image:
-   ```bash
-   docker build -t mcp/mem0 --build-arg PORT=8050 .
-   ```
+## Конфигурация
 
-2. Create a `.env` file based on `.env.example` and configure your environment variables
+Настройте следующие переменные в `.env` файле:
 
-## Configuration
-
-The following environment variables can be configured in your `.env` file:
-
-| Variable | Description | Example |
-|----------|-------------|----------|
-| `TRANSPORT` | Transport protocol (sse or stdio) | `sse` |
-| `HOST` | Host to bind to when using SSE transport | `0.0.0.0` |
-| `PORT` | Port to listen on when using SSE transport | `8050` |
-| `LLM_PROVIDER` | LLM provider (openai, openrouter, or ollama) | `openai` |
-| `LLM_BASE_URL` | Base URL for the LLM API | `https://api.openai.com/v1` |
-| `LLM_API_KEY` | API key for the LLM provider | `sk-...` |
-| `LLM_CHOICE` | LLM model to use | `gpt-4o-mini` |
-| `EMBEDDING_MODEL_CHOICE` | Embedding model to use | `text-embedding-3-small` |
+| Переменная | Описание | Пример |
+|------------|----------|---------|
+| `TRANSPORT` | Протокол (sse или stdio) | `sse` |
+| `HOST` | Хост для SSE | `0.0.0.0` |
+| `PORT` | Порт для SSE | `8050` |
+| `LLM_PROVIDER` | LLM провайдер | `openai` |
+| `LLM_API_KEY` | API ключ | `sk-...` |
+| `LLM_CHOICE` | Модель LLM | `gpt-4o-mini` |
+| `EMBEDDING_MODEL_CHOICE` | Модель embeddings | `text-embedding-3-small` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:port/db` |
 
-## Running the Server
+## Использование Enhanced Memory System
 
-### Using uv
+### Пример 1: Сохранение Проверенной Информации
 
-#### SSE Transport
+```python
+# Вместо обычного save_memory используйте save_verified_memory
+await save_verified_memory(
+    content="Project uses FastAPI with PostgreSQL database and Redis cache",
+    project_id="web_backend",
+    category="architecture", 
+    confidence_level=9,
+    source="code_analysis",
+    expires_in_days=180,
+    tags="fastapi,postgresql,redis,backend"
+)
+```
+
+### Пример 2: Получение Точного Контекста
+
+```python
+# Получить только проверенную информацию с high confidence
+result = await get_accurate_context(
+    query="database architecture",
+    project_id="web_backend",
+    min_confidence=7,
+    limit=5
+)
+```
+
+### Пример 3: Обработка Конфликтов
+
+```python
+# Система автоматически обнаружит конфликт
+await save_verified_memory(
+    content="Project uses MongoDB database",  # Конфликт с PostgreSQL выше
+    project_id="web_backend",
+    category="architecture",
+    confidence_level=8
+)
+# ⚠️ Вернет предупреждение о конфликте
+
+# Разрешить конфликт
+await resolve_context_conflict(
+    conflicting_memory_ids="mem_001,mem_002",
+    correct_content="Project uses PostgreSQL as primary database, MongoDB for analytics",
+    resolution_reason="Architecture review confirmed PostgreSQL for main data, MongoDB for logs"
+)
+```
+
+### Пример 4: Проектные Milestone
+
+```python
+# Сохранить важное архитектурное решение
+await save_project_milestone(
+    project_id="web_backend",
+    milestone_type="architecture_decision",
+    content="Decided to implement microservices architecture with API Gateway",
+    impact_level=9,
+    tags="microservices,api-gateway,architecture"
+)
+
+# Получить текущее состояние проекта
+current_state = await get_current_project_state("web_backend")
+```
+
+### Пример 5: Аудит Качества
+
+```python
+# Проверить качество памяти проекта
+validation_report = await validate_project_context("web_backend")
+
+# Полный аудит всей базы памяти
+quality_audit = await audit_memory_quality()
+```
+
+## Запуск Сервера
+
+### SSE Transport
 
 ```bash
-# Set TRANSPORT=sse in .env then:
+# Установить TRANSPORT=sse в .env, затем:
 uv run src/main.py
+
+# Или с Docker:
+docker run --env-file .env -p 8050:8050 mcp/mem0-enhanced
 ```
 
-The MCP server will essentially be run as an API endpoint that you can then connect to with config shown below.
+### Stdio Transport
 
-#### Stdio Transport
+Клиент MCP сам запустит сервер при подключении.
 
-With stdio, the MCP client iself can spin up the MCP server, so nothing to run at this point.
+## Интеграция с MCP Клиентами
 
-### Using Docker
-
-#### SSE Transport
-
-```bash
-docker run --env-file .env -p:8050:8050 mcp/mem0
-```
-
-The MCP server will essentially be run as an API endpoint within the container that you can then connect to with config shown below.
-
-#### Stdio Transport
-
-With stdio, the MCP client iself can spin up the MCP server container, so nothing to run at this point.
-
-## Integration with MCP Clients
-
-### SSE Configuration
-
-Once you have the server running with SSE transport, you can connect to it using this configuration:
+### SSE Конфигурация
 
 ```json
 {
   "mcpServers": {
-    "mem0": {
+    "mem0-enhanced": {
       "transport": "sse",
       "url": "http://localhost:8050/sse"
     }
@@ -129,41 +202,18 @@ Once you have the server running with SSE transport, you can connect to it using
 }
 ```
 
-> **Note for Windsurf users**: Use `serverUrl` instead of `url` in your configuration:
-> ```json
-> {
->   "mcpServers": {
->     "mem0": {
->       "transport": "sse",
->       "serverUrl": "http://localhost:8050/sse"
->     }
->   }
-> }
-> ```
-
-> **Note for n8n users**: Use host.docker.internal instead of localhost since n8n has to reach outside of it's own container to the host machine:
-> 
-> So the full URL in the MCP node would be: http://host.docker.internal:8050/sse
-
-Make sure to update the port if you are using a value other than the default 8050.
-
-### Python with Stdio Configuration
-
-Add this server to your MCP configuration for Claude Desktop, Windsurf, or any other MCP client:
+### Stdio Конфигурация
 
 ```json
 {
   "mcpServers": {
-    "mem0": {
-      "command": "your/path/to/mcp-mem0/.venv/Scripts/python.exe",
-      "args": ["your/path/to/mcp-mem0/src/main.py"],
+    "mem0-enhanced": {
+      "command": "python",
+      "args": ["./src/main.py"],
       "env": {
         "TRANSPORT": "stdio",
         "LLM_PROVIDER": "openai",
-        "LLM_BASE_URL": "https://api.openai.com/v1",
         "LLM_API_KEY": "YOUR-API-KEY",
-        "LLM_CHOICE": "gpt-4o-mini",
-        "EMBEDDING_MODEL_CHOICE": "text-embedding-3-small",
         "DATABASE_URL": "YOUR-DATABASE-URL"
       }
     }
@@ -171,41 +221,124 @@ Add this server to your MCP configuration for Claude Desktop, Windsurf, or any o
 }
 ```
 
-### Docker with Stdio Configuration
+## Тестирование
 
-```json
-{
-  "mcpServers": {
-    "mem0": {
-      "command": "docker",
-      "args": ["run", "--rm", "-i", 
-               "-e", "TRANSPORT", 
-               "-e", "LLM_PROVIDER", 
-               "-e", "LLM_BASE_URL", 
-               "-e", "LLM_API_KEY", 
-               "-e", "LLM_CHOICE", 
-               "-e", "EMBEDDING_MODEL_CHOICE", 
-               "-e", "DATABASE_URL", 
-               "mcp/mem0"],
-      "env": {
-        "TRANSPORT": "stdio",
-        "LLM_PROVIDER": "openai",
-        "LLM_BASE_URL": "https://api.openai.com/v1",
-        "LLM_API_KEY": "YOUR-API-KEY",
-        "LLM_CHOICE": "gpt-4o-mini",
-        "EMBEDDING_MODEL_CHOICE": "text-embedding-3-small",
-        "DATABASE_URL": "YOUR-DATABASE-URL"
-      }
-    }
-  }
-}
+### Запуск Тестов
+
+```bash
+# Установить pytest
+uv pip install pytest pytest-asyncio
+
+# Запустить все тесты
+pytest tests/ -v
+
+# Запустить только тесты Enhanced Memory
+pytest tests/test_enhanced_memory.py -v
 ```
 
-## Building Your Own Server
+### Тестовые Сценарии
 
-This template provides a foundation for building more complex MCP servers. To build your own:
+Система включает comprehensive тесты для:
+- ✅ Обнаружения конфликтов
+- ✅ Версионирования записей  
+- ✅ Валидации качества
+- ✅ Фильтрации по точности
+- ✅ Проектного контекста
 
-1. Add your own tools by creating methods with the `@mcp.tool()` decorator
-2. Create your own lifespan function to add your own dependencies (clients, database connections, etc.)
-3. Modify the `utils.py` file for any helper functions you need for your MCP server
-4. Feel free to add prompts and resources as well  with `@mcp.resource()` and `@mcp.prompt()`
+## Миграция с Оригинального mcp-mem0
+
+### Обратная Совместимость
+
+Существующие записи продолжают работать. Новые возможности:
+
+```python
+# Старый способ (по-прежнему работает)
+await save_memory("Some information")
+
+# Новый способ с гарантиями точности
+await save_verified_memory(
+    content="Some information",
+    project_id="my_project", 
+    category="architecture",
+    confidence_level=8
+)
+```
+
+## Продвинутые Возможности
+
+### Confidence Scoring
+
+- **1-3**: Низкая уверенность, требует проверки
+- **4-6**: Средняя уверенность, может потребовать валидации
+- **7-8**: Высокая уверенность, надежная информация  
+- **9-10**: Максимальная уверенность, проверенные факты
+
+### Категории Информации
+
+- **`architecture`** - архитектурные решения и компоненты
+- **`problem`** - выявленные проблемы и ограничения
+- **`solution`** - реализованные решения
+- **`status`** - текущий статус и прогресс
+- **`decision`** - принятые решения и их обоснования
+
+### Источники Информации
+
+- **`user_input`** - информация от пользователя
+- **`code_analysis`** - анализ кодовой базы
+- **`documentation`** - из документации проекта
+- **`project_milestone`** - проектные вехи
+- **`conflict_resolution`** - результат разрешения конфликтов
+
+## Best Practices
+
+### Для AI Агентов
+
+1. **Используйте get_accurate_context** для production запросов
+2. **Указывайте realistic confidence_level** на основе источника
+3. **Группируйте по project_id** для изоляции проектов
+4. **Регулярно валидируйте** качество контекста
+
+### Для Разработчиков
+
+1. **Мониторьте health_score** через audit_memory_quality
+2. **Разрешайте конфликты быстро** для поддержания качества
+3. **Используйте appropriate expiration** для time-sensitive данных
+4. **Документируйте sources** для audit trail
+
+## Архитектурные Особенности
+
+### Производительность
+
+- PostgreSQL с векторными индексами для fast search
+- Connection pooling для concurrent access
+- Асинхронная валидация для background quality checks
+- Caching для frequently accessed context
+
+### Масштабирование
+
+- Horizontal scaling через Supabase
+- Project-based partitioning для large datasets  
+- Batch operations для bulk updates
+- Streaming responses для large results
+
+## Документация
+
+- 📖 [Детальная документация](docs/ENHANCED_MEMORY_SYSTEM.md)
+- 🧪 [Тестовые примеры](tests/test_enhanced_memory.py)
+- 🔧 [API Reference](docs/API_REFERENCE.md)
+
+## Лицензия
+
+MIT License - см. [LICENSE](LICENSE) файл.
+
+## Поддержка
+
+Создайте issue в репозитории для:
+- 🐛 Баг репорты
+- 💡 Feature requests  
+- ❓ Вопросы по использованию
+- 📝 Улучшения документации
+
+---
+
+**Enhanced Memory System гарантирует, что ваши AI агенты получают только точную, актуальную и проверенную информацию для принятия решений.**
