@@ -1,17 +1,35 @@
-version: '3.8'
-
 services:
-  mcp-mem0:
+  app:
     build: .
+    container_name: fastapi-mcp-memory
     ports:
-      - "8050:8050"
+      - "8000:8000"
     environment:
-      - TRANSPORT=sse
-      - HOST=0.0.0.0
-      - PORT=8050
-      - OPENAI_API_KEY=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
-      - LLM_PROVIDER=openai
-      - LLM_API_KEY=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
-      - LLM_CHOICE=gpt-4o-mini
-      - EMBEDDING_MODEL_CHOICE=text-embedding-3-small
-    restart: unless-stopped 
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# Опциональный nginx для проксирования (production ready)
+nginx:
+  image: nginx:alpine
+  container_name: mcp-nginx
+  ports:
+    - "80:80"
+  volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  depends_on:
+    - app
+  restart: unless-stopped
+  profiles:
+    - production
+
+volumes:
+  data:
+    driver: local 

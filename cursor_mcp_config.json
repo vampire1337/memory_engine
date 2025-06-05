@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "mem0-enhanced": {
-      "command": "python",
-      "args": ["start_mcp.py"],
-      "cwd": "C:/Users/mihai/Heist_master_PC/Documents/GitHub/mcp-mem0"
-    }
-  }
-} 

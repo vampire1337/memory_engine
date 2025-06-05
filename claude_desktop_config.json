@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fastapi-mem0-memory": {
+      "transport": "sse",
+      "url": "http://localhost:8000/mcp",
+      "name": "FastAPI Mem0 Memory Server",
+      "description": "Стабильный сервер памяти с 11 инструментами"
+    }
+  },
+  "globalShortcut": "Cmd+Shift+P"
+} 

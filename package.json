@@ -1,0 +1,31 @@
+{
+  "name": "fastapi-mcp-memory-server",
+  "version": "1.0.0",
+  "description": "Стабильный MCP сервер памяти с 11 инструментами через FastAPI-MCP",
+  "scripts": {
+    "server": "python src/fastapi_memory_server.py",
+    "server-dev": "uvicorn src.fastapi_memory_server:app --reload --host 0.0.0.0 --port 8000",
+    "start": "docker-compose up --build",
+    "dev": "docker-compose up --build -d && npm run logs",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "test": "docker-compose exec app python test_fastapi_mcp_server.py",
+    "test-local": "python test_fastapi_mcp_server.py",
+    "config": "node scripts/setup-cursor-config.js",
+    "health": "curl -f http://localhost:8000/ || echo 'Server not running'",
+    "install-deps": "pip install -r requirements.txt"
+  },
+  "keywords": [
+    "mcp",
+    "memory",
+    "fastapi", 
+    "cursor",
+    "ai",
+    "claude"
+  ],
+  "author": "FastAPI-MCP Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
