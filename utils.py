@@ -243,8 +243,22 @@ def get_mem0_client():
         if embedding_base_url:
             config["embedder"]["config"]["ollama_base_url"] = embedding_base_url
     
-    # Configure Supabase vector store - REMOVED for testing
-    # Use default in-memory vector store instead
+    # Configure Supabase vector store
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        config["vector_store"] = {
+            "provider": "supabase",
+            "config": {
+                "connection_string": database_url,
+                "collection_name": "memory_vectors",
+                "embedding_model_dims": 1536 if llm_provider == 'openai' else 768,
+                "index_method": "hnsw", 
+                "index_measure": "cosine_distance"
+            }
+        }
+        print(f"✅ Используем Supabase векторную БД: {database_url[:50]}...")
+    else:
+        print("⚠️ DATABASE_URL не найден, используем локальную векторную БД")
 
     # config["custom_fact_extraction_prompt"] = CUSTOM_INSTRUCTIONS
     

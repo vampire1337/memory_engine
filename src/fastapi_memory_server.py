@@ -184,6 +184,11 @@ async def save_verified_memory(request: SaveVerifiedMemoryRequest) -> Dict[str, 
     try:
         mem0_client = safe_get_mem0_client()
         
+        # Преобразуем expires_in_days в expires_at
+        expires_at = None
+        if request.expires_in_days:
+            expires_at = (datetime.now() + timedelta(days=request.expires_in_days)).isoformat()
+        
         # Создаем расширенные метаданные
         metadata = create_enhanced_metadata(
             category=request.category,
@@ -191,7 +196,7 @@ async def save_verified_memory(request: SaveVerifiedMemoryRequest) -> Dict[str, 
             source=request.source,
             project_id=request.project_id,
             tags=request.tags.split(",") if request.tags else None,
-            expires_in_days=request.expires_in_days
+            expires_at=expires_at  # Используем expires_at вместо expires_in_days
         )
         
         # Расширенный контент с метаданными
@@ -603,6 +608,10 @@ if __name__ == "__main__":
     print("  • POST /memory/save-milestone      - Сохранить этап")
     print("  • POST /memory/get-project-state   - Состояние проекта")
     print("  • POST /memory/track-evolution     - Отследить эволюцию")
-    print("🔧 MCP сервер доступен на: http://localhost:8000/mcp")
+    print("🔧 MCP сервер доступен на: http://localhost:8051/mcp")
     
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    # Используем порт из ENV или 8051 по умолчанию
+    port = int(os.getenv('PORT', 8051))
+    host = os.getenv('HOST', '0.0.0.0')
+    
+    uvicorn.run(app, host=host, port=port) 
