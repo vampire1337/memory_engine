@@ -4,3 +4,5 @@ venv
 __pycache__
 mem0_mcp.egg-info
 .python-version
+.env
+.env
