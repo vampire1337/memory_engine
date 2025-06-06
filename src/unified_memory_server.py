@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi_mcp import FastApiMCP
 
-# Mem0 с поддержкой графов
+# Mem0 Open Source с поддержкой графов 
 try:
     from mem0 import Memory
     MEM0_AVAILABLE = True
@@ -37,7 +37,9 @@ class UnifiedMemoryConfig:
     def get_environment_config():
         """Получить конфигурацию из переменных окружения"""
         return {
-            "openai_api_key": os.getenv("OPENAI_API_KEY"),
+            "openai_api_key": os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY"),
+            "database_url": os.getenv("DATABASE_URL"),
+            "postgres_url": os.getenv("POSTGRES_URL"),
             "neo4j_url": os.getenv("NEO4J_URL", "bolt://localhost:7687"),
             "neo4j_username": os.getenv("NEO4J_USERNAME", "neo4j"),
             "neo4j_password": os.getenv("NEO4J_PASSWORD", "graphmemory123"),
@@ -46,47 +48,7 @@ class UnifiedMemoryConfig:
             "server_port": int(os.getenv("MEMORY_SERVER_PORT", "8051"))
         }
     
-    @staticmethod
-    def get_mem0_config():
-        """Получить оптимальную конфигурацию Mem0"""
-        env_config = UnifiedMemoryConfig.get_environment_config()
-        
-        # Базовая конфигурация (упрощенная для совместимости)
-        config = {
-            "llm": {
-                "provider": "openai",
-                "config": {
-                    "model": "gpt-4o-mini",
-                    "temperature": 0.1,
-                    "max_tokens": 2000,
-                    "api_key": env_config["openai_api_key"]
-                }
-            },
-            "embedder": {
-                "provider": "openai",
-                "config": {
-                    "model": "text-embedding-3-small",
-                    "api_key": env_config["openai_api_key"]
-                }
-            }
-        }
-        
-        # Добавляем Graph Store если Neo4j доступен
-        if env_config["neo4j_password"]:
-            try:
-                config["graph_store"] = {
-                    "provider": "neo4j",
-                    "config": {
-                        "url": env_config["neo4j_url"],
-                        "username": env_config["neo4j_username"],
-                        "password": env_config["neo4j_password"]
-                    }
-                }
-                logger.info("✅ Graph Store (Neo4j) настроен")
-            except Exception as e:
-                logger.warning(f"⚠️ Neo4j недоступен: {e}")
-        
-        return config
+
 
 # =================== КЛИЕНТЫ ПАМЯТИ ===================
 
@@ -94,18 +56,21 @@ class UnifiedMemoryClient:
     """Unified клиент с поддержкой базовой + графовой памяти"""
     
     def __init__(self):
-        self.config = UnifiedMemoryConfig.get_mem0_config()
         self.has_mem0 = MEM0_AVAILABLE
-        self.has_graph_support = "graph_store" in self.config
         
         if self.has_mem0:
             try:
-                self.memory = Memory.from_config(config_dict=self.config)
-                logger.info("✅ Mem0 Memory клиент инициализирован")
+                # Mem0 Open Source - БЕЗ API ключа!
+                self.memory = Memory()
+                logger.info("✅ Mem0 Open Source инициализирован (без API ключа)")
+                self.has_graph_support = True  # Современные версии поддерживают графы
             except Exception as e:
-                logger.error(f"❌ Ошибка создания Memory клиента: {e}")
+                logger.error(f"❌ Ошибка создания Memory: {e}")
                 self.memory = None
                 self.has_mem0 = False
+                self.has_graph_support = False
+        else:
+            self.has_graph_support = False
         
         # Инициализируем fallback storage
         self.fallback_memories = []
@@ -233,15 +198,22 @@ async def save_memory(request: MemoryRequest) -> Dict[str, Any]:
                 "message": "Saved in fallback storage"
             }
         
-        # Mem0 режим
+        # Mem0 режим - новый API
         messages = [{"role": "user", "content": request.content}]
-        result = client.memory.add(
-            messages=messages,
-            user_id=request.user_id,
-            agent_id=request.agent_id,
-            session_id=request.session_id,
-            metadata=request.metadata
-        )
+        kwargs = {
+            "messages": messages,
+            "user_id": request.user_id
+        }
+        
+        # Добавляем опциональные параметры если есть
+        if request.agent_id:
+            kwargs["agent_id"] = request.agent_id
+        if request.session_id:
+            kwargs["session_id"] = request.session_id
+        if request.metadata:
+            kwargs["metadata"] = request.metadata
+            
+        result = client.memory.add(**kwargs)
         
         return {
             "status": "success",
@@ -273,14 +245,21 @@ async def search_memories(request: SearchRequest) -> Dict[str, Any]:
                 "total": len(results)
             }
         
-        # Mem0 поиск
-        results = client.memory.search(
-            query=request.query,
-            user_id=request.user_id,
-            agent_id=request.agent_id,
-            session_id=request.session_id,
-            limit=request.limit
-        )
+        # Mem0 поиск - новый API
+        kwargs = {
+            "query": request.query,
+            "user_id": request.user_id
+        }
+        
+        # Добавляем опциональные параметры
+        if request.agent_id:
+            kwargs["agent_id"] = request.agent_id
+        if request.session_id:
+            kwargs["session_id"] = request.session_id
+        if request.limit:
+            kwargs["limit"] = request.limit
+            
+        results = client.memory.search(**kwargs)
         
         return {
             "status": "success",
@@ -311,12 +290,18 @@ async def get_all_memories(request: GetMemoriesRequest) -> Dict[str, Any]:
                 "total": len(results)
             }
         
-        # Mem0 режим
-        memories = client.memory.get_all(
-            user_id=request.user_id,
-            agent_id=request.agent_id,
-            session_id=request.session_id
-        )
+        # Mem0 режим - новый API
+        kwargs = {
+            "user_id": request.user_id
+        }
+        
+        # Добавляем опциональные параметры
+        if request.agent_id:
+            kwargs["agent_id"] = request.agent_id
+        if request.session_id:
+            kwargs["session_id"] = request.session_id
+            
+        memories = client.memory.get_all(**kwargs)
         
         return {
             "status": "success",

@@ -36,7 +36,7 @@ RUN pip install --upgrade pip && \
 # Копируем код приложения
 COPY src/unified_memory_server.py ./
 COPY src/__init__.py ./src/
-COPY utils.py ./
+COPY src/utils.py ./
 
 # Создаем директории для логов и данных
 RUN mkdir -p /app/logs /app/data /home/appuser/.mem0 && \

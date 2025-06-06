@@ -186,7 +186,7 @@ def get_mem0_config(provider: str = "openai") -> dict:
                 "provider": "openai",
                 "config": {
                     "model": "text-embedding-3-small"
-                    # Убираю embedding_dims - не поддерживается в текущей версии
+
                 }
             },
             "llm": {
@@ -211,7 +211,7 @@ def get_mem0_config(provider: str = "openai") -> dict:
                 "provider": "nomic",
                 "config": {
                     "model": "nomic-embed-text"
-                    # Убираю embedding_dims - не поддерживается в текущей версии
+
                 }
             },
             "llm": {
@@ -280,7 +280,6 @@ def get_mem0_client():
             "provider": "openai",
             "config": {
                 "model": embedding_model or "text-embedding-3-small"
-                # Убираю embedding_dims - не поддерживается в текущей версии
             }
         }
         
@@ -293,7 +292,6 @@ def get_mem0_client():
             "provider": "ollama",
             "config": {
                 "model": embedding_model or "nomic-embed-text"
-                # Убираю embedding_dims - не поддерживается в текущей версии
             }
         }
         

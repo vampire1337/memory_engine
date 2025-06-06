@@ -65,15 +65,17 @@ services:
       - "8051:8051"  # MCP Server
     environment:
       # OpenAI Configuration
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      
+      # Database Configuration (приоритет: Supabase, затем локальный)
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres123@postgres:5432/unified_memory}
+      POSTGRES_URL: ${DATABASE_URL:-postgresql://postgres:postgres123@postgres:5432/unified_memory}
       
       # Neo4j Configuration
       NEO4J_URL: bolt://neo4j:7687
       NEO4J_USERNAME: neo4j
       NEO4J_PASSWORD: graphmemory123
-      
-      # PostgreSQL Configuration (векторная база)
-      POSTGRES_URL: postgresql://postgres:postgres123@postgres:5432/unified_memory
       
       # Server Configuration
       MEMORY_SERVER_PORT: 8051

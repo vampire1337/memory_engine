@@ -1,0 +1,96 @@
+{
+  "timestamp": "2025-06-06T21:25:32.349656",
+  "test_type": "browser_testing",
+  "urls": {
+    "Memory Server Health": "http://localhost:8051/health",
+    "Memory Server Docs": "http://localhost:8051/docs",
+    "Neo4j Browser": "http://localhost:7474",
+    "Supabase Dashboard": "https://supabase.com/dashboard/project/your-project",
+    "Grafana (если запущен)": "http://localhost:3000",
+    "Prometheus (если запущен)": "http://localhost:9090"
+  },
+  "neo4j_queries": [
+    {
+      "name": "Все узлы и связи",
+      "query": "MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 25"
+    },
+    {
+      "name": "Статистика базы данных",
+      "query": "CALL db.stats.retrieve('GRAPH COUNTS')"
+    },
+    {
+      "name": "Схема базы данных",
+      "query": "CALL db.schema.visualization()"
+    },
+    {
+      "name": "Поиск пользователей",
+      "query": "MATCH (n:Person) RETURN n LIMIT 10"
+    },
+    {
+      "name": "Поиск технологий",
+      "query": "MATCH (n:Technology) RETURN n LIMIT 10"
+    },
+    {
+      "name": "Все типы связей",
+      "query": "MATCH ()-[r]->() RETURN DISTINCT type(r) as relationship_type"
+    }
+  ],
+  "supabase_queries": [
+    {
+      "name": "Все воспоминания",
+      "query": "SELECT * FROM memories ORDER BY created_at DESC LIMIT 10;"
+    },
+    {
+      "name": "Статистика воспоминаний",
+      "query": "SELECT COUNT(*) as total_memories, COUNT(DISTINCT user_id) as unique_users FROM memories;"
+    },
+    {
+      "name": "Поиск по контенту",
+      "query": "SELECT id, content, created_at FROM memories WHERE content ILIKE '%Python%' LIMIT 5;"
+    },
+    {
+      "name": "Анализ метаданных",
+      "query": "SELECT metadata->>'category' as category, COUNT(*) FROM memories GROUP BY metadata->>'category';"
+    }
+  ],
+  "test_data": [
+    {
+      "type": "personal_info",
+      "content": "Меня зовут Алексей, я Python разработчик из Москвы. Специализируюсь на backend разработке и системах машинного обучения.",
+      "expected_neo4j": "Person(Алексей) -[WORKS_WITH]-> Technology(Python)",
+      "expected_supabase": "Embedding вектор в таблице memories"
+    },
+    {
+      "type": "tech_stack",
+      "content": "Мой основной стек: FastAPI + PostgreSQL + Redis + Docker. Для ML использую PyTorch и scikit-learn.",
+      "expected_neo4j": "Technology узлы и USED_WITH связи",
+      "expected_supabase": "Высокое сходство с tech-related queries"
+    },
+    {
+      "type": "current_project",
+      "content": "Работаю над MCP-Mem0 - системой долговременной памяти для AI агентов с интеграцией Neo4j и Supabase.",
+      "expected_neo4j": "Project(MCP-Mem0) связанный с технологиями",
+      "expected_supabase": "Семантическая связь с AI и memory топиками"
+    }
+  ],
+  "expected_results": {
+    "Neo4j Graph": [
+      "Узлы типа Person, Technology, Project",
+      "Связи типа WORKS_WITH, PREFERS, USES",
+      "Кластеры связанных технологий",
+      "Путь от пользователя к проектам"
+    ],
+    "Supabase Vector": [
+      "Таблица memories с embedding векторами",
+      "Метаданные с project_id, category, tags",
+      "Семантический поиск работает корректно",
+      "Высокое сходство для релевантных запросов"
+    ],
+    "Memory Server": [
+      "API endpoints отвечают корректно",
+      "Сохранение работает в обе базы",
+      "Поиск возвращает релевантные результаты",
+      "Метаданные корректно обрабатываются"
+    ]
+  }
+}

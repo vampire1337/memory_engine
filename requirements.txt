@@ -6,8 +6,8 @@ pydantic>=2.5.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 
-# Mem0 dependencies - уменьшаем версию для совместимости
-mem0ai>=0.1.0
+# Mem0 Open Source SDK - самая свежая версия 0.1.104
+mem0ai>=0.1.104
 
 # Optional: for better performance
 python-multipart>=0.0.6 
