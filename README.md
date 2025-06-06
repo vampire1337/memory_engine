@@ -1,437 +1,384 @@
-# 🧠 MCP-Mem0: Enterprise AI Memory System
+# 🧠 **Enterprise MCP-Mem0 Server v2.0**
 
-> **Production Ready** | **15 Memory Tools** | **Graph Support** | **100% Test Coverage**
+<div align="center">
 
-Революционная система памяти для AI агентов, объединяющая **Mem0 SDK** с **MCP Protocol** для создания полноценной умной комплексной памяти, которая делает ваших AI агентов по-настоящему интеллектуальными и персонализированными.
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
+![MCP](https://img.shields.io/badge/MCP-Latest-purple.svg)
+![Mem0](https://img.shields.io/badge/Mem0-1.1+-orange.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)
+![Production](https://img.shields.io/badge/Production-Ready-green.svg)
 
-## 🎯 Что это дает вашим AI агентам
+**17 Production-Ready Memory Tools для AI Agents через Model Context Protocol**
 
-### 🧠 **Интеллектуальная память как у человека**
-- **Долгосрочная память** - агент помнит вас через недели и месяцы
-- **Контекстуальное понимание** - связывает информацию из разных разговоров
-- **Эволюция знаний** - память улучшается и уточняется со временем
-- **Персонализация** - уникальный опыт для каждого пользователя
+</div>
 
-### 🕸️ **Графовая память - прорыв в AI**
-- **Связи между концепциями** - агент понимает как связаны разные идеи
-- **Многоуровневое мышление** - может делать сложные логические выводы
-- **Извлечение сущностей** - автоматически находит важные объекты и их связи
-- **Контекстуальные карты** - строит карты знаний в реальном времени
+---
 
-## 🛠️ 15 Супер-инструментов памяти
+## 🎯 **ЧТО ЭТО ТАКОЕ?**
 
-### 💾 **Базовые инструменты (12 шт.)**
+**Enterprise MCP-Mem0 Server** - это production-ready система управления памятью для AI агентов, предоставляющая **17 enterprise tools** через Model Context Protocol (MCP).
 
-#### 1. **Save Memory** - Сохранение информации
-```python
-# Агент запоминает важную информацию о пользователе
-"Я веган, аллергик на орехи, живу в Москве, работаю программистом"
-```
-**Возможности:**
-- Автоматическое извлечение ключевых фактов
-- Категоризация по типам информации  
-- Метаданные для быстрого поиска
+### 🏗️ **Ключевые особенности:**
+- ✅ **FastAPI-MCP Integration** - автоматическая генерация MCP tools из FastAPI endpoints
+- ✅ **Hybrid Memory System** - Graph (Memgraph) + Vector (Supabase) память одновременно
+- ✅ **Redis Synchronization** - события, кэширование и distributed locking
+- ✅ **Enterprise Grade** - comprehensive error handling, monitoring, logging
+- ✅ **Background Tasks** - асинхронная обработка heavy operations
+- ✅ **Production Ready** - Docker, security, scalability
 
-#### 2. **Search Memories** - Семантический поиск
-```python
-# Поиск: "рестораны для веганов"
-# Находит: информацию о диете, городе, предпочтениях
-```
-**Возможности:**
-- Понимание контекста, а не только ключевых слов
-- Ранжирование по релевантности
-- Связанные воспоминания
+---
 
-#### 3. **Get All Memories** - Полный контекст
-```python
-# Агент получает всю историю взаимодействий
-# Создает полную картину пользователя
-```
-**Возможности:**
-- Комплексное понимание пользователя
-- Анализ паттернов поведения
-- Персонализация на основе истории
+## 📊 **17 ENTERPRISE TOOLS**
 
-#### 4. **Save Verified Memory** - Проверенная информация  
-```python
-# Сохранение фактов с высокой степенью уверенности
-# Источник: документация, официальные данные
-```
-**Возможности:**
-- Разделение фактов и предположений
-- Уровни достоверности информации
-- Источники и валидация
+### 📚 **Memory Tools (11):**
+1. **save_memory** - сохранение памяти с Graph+Vector processing
+2. **search_memories** - hybrid поиск с Redis кэшированием
+3. **get_all_memories** - получение всех воспоминаний пользователя
+4. **save_verified_memory** - сохранение проверенной информации
+5. **get_accurate_context** - получение релевантного контекста
+6. **validate_project_context** - валидация проектного контекста
+7. **resolve_context_conflict** - разрешение противоречий в памяти
+8. **audit_memory_quality** - анализ качества памяти
+9. **save_project_milestone** - сохранение milestone проекта
+10. **get_current_project_state** - текущее состояние проекта
+11. **track_project_evolution** - эволюция проекта во времени
 
-#### 5. **Get Accurate Context** - Точный контекст
-```python
-# Получение только релевантной и достоверной информации
-# Фильтрация шума и неточностей
-```
-**Возможности:**
-- Контроль качества памяти
-- Приоритизация точной информации
-- Уменьшение галлюцинаций AI
+### 🕸️ **Graph Memory Tools (4):**
+12. **save_graph_memory** - сохранение с извлечением сущностей и связей
+13. **search_graph_memory** - поиск с графовым контекстом
+14. **get_entity_relationships** - анализ связей сущности
+15. **graph_status** - статус графовой системы
 
-#### 6. **Validate Project Context** - Валидация проектного контекста
-```python
-# Проверка соответствия информации проекту
-# Выявление устаревших данных
-```
-**Возможности:**
-- Поддержание актуальности данных
-- Проектно-ориентированная память
-- Версионирование информации
+### ⚙️ **System Tools (2):**
+16. **health** - комплексная проверка здоровья системы
+17. **root** - информация о системе и endpoints
 
-#### 7. **Resolve Context Conflict** - Разрешение конфликтов
-```python
-# Когда агент находит противоречивую информацию
-# Автоматическое разрешение или запрос уточнения
-```
-**Возможности:**
-- Intelligent conflict detection
-- Приоритизация источников
-- Graceful handling противоречий
+---
 
-#### 8. **Audit Memory Quality** - Аудит качества памяти
-```python
-# Анализ качества сохраненной информации
-# Метрики полноты, актуальности, точности
-```
-**Возможности:**
-- Continuous quality improvement
-- Выявление пробелов в памяти
-- Рекомендации по улучшению
+## 🚀 **БЫСТРЫЙ СТАРТ**
 
-#### 9. **Save Project Milestone** - Сохранение вех проекта
-```python
-# Фиксация важных моментов развития проекта
-# Создание временной линии прогресса
-```
-**Возможности:**
-- Project management memory
-- Tracking прогресса
-- Milestone-based context
-
-#### 10. **Get Current Project State** - Текущее состояние проекта
-```python
-# Быстрый доступ к актуальному статусу
-# Понимание текущих задач и целей
-```
-**Возможности:**
-- Real-time project awareness
-- Context-aware recommendations
-- Smart task prioritization
-
-#### 11. **Track Project Evolution** - Отслеживание эволюции
-```python
-# Анализ изменений проекта во времени
-# Понимание трендов и паттернов развития
-```
-**Возможности:**
-- Historical pattern analysis
-- Prediction capabilities
-- Adaptive project management
-
-#### 12. **Health Check** - Мониторинг системы
-```python
-# Проверка работоспособности всех компонентов памяти
-# Статус соединений и производительности
-```
-
-### 🕸️ **Графовые инструменты (4 шт.)**
-
-#### 13. **Save Graph Memory** - Графовое сохранение
-```python
-# Автоматическое извлечение сущностей и связей
-# "Python связан с FastAPI через веб-разработку"
-# Создает: Python -> uses -> FastAPI -> for -> web_development
-```
-**Революционные возможности:**
-- **Entity extraction** - находит людей, места, концепции
-- **Relationship mapping** - связывает сущности логически
-- **Contextual graphs** - строит карты знаний
-
-#### 14. **Search Graph Memory** - Графовый поиск
-```python
-# Поиск с пониманием связей
-# "Что связано с Python?" -> FastAPI, web, данные, ML
-```
-**Уникальные возможности:**
-- **Multi-hop reasoning** - поиск через несколько связей
-- **Semantic neighborhoods** - находит связанные концепции
-- **Graph traversal** - умный обход графа знаний
-
-#### 15. **Get Entity Relationships** - Анализ связей сущностей
-```python
-# Глубокий анализ как сущности связаны
-# Python: используется в (FastAPI, Django), связан с (AI, data science)
-```
-**Мощные возможности:**
-- **Relationship analysis** - типы и силы связей
-- **Entity centrality** - важность сущностей в графе
-- **Knowledge discovery** - находит неочевидные связи
-
-#### 16. **Graph Status** - Статус графовой системы
-```python
-# Мониторинг работы Neo4j и графовых операций
-# Статистика узлов, связей, производительности
-```
-
-## 🚀 Запуск системы
-
-### 📋 Требования
+### 1️⃣ **Установка и настройка:**
 ```bash
-# Обязательные переменные окружения
-export OPENAI_API_KEY="your-openai-key"
-export NEO4J_PASSWORD="graphmemory123"  # Для графовой памяти
-export MEMORY_SERVER_PORT="8051"
+# Клонирование репозитория
+git clone https://github.com/your-repo/mcp-mem0
+cd mcp-mem0
+
+# Создание environment файла
+cat > .env << 'EOF'
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
+DATABASE_URL=postgresql://postgres.xxxxx:password@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
+NEO4J_URL=bolt://memgraph:7687
+NEO4J_USERNAME=memgraph
+NEO4J_PASSWORD=graphmemory123
+REDIS_URL=redis://:redispassword@redis:6379/0
+EOF
 ```
 
-## ✅ ИСПРАВЛЕННЫЕ ПРОБЛЕМЫ (v1.0.1)
-
-### ❌ **Критические исправления**
-- **Ошибка `embedding_dims`**: Удален параметр из Mem0 конфигурации (несовместим с новой версией)
-- **Неправильный путь в Docker**: Исправлен путь к `src/utils.py` в `Dockerfile.unified`
-- **Спам контейнеров**: Исправлены проблемы с повторным запуском Docker
-
-### 🚀 **Windows запуск (НОВОЕ)**
-
-```cmd
-:: Автоматический запуск через батч-файл
-.\запуск_windows.bat
-
-:: Диагностика проблем
-.\диагностика_windows.ps1 -Full
-```
-
-```powershell
-# PowerShell с параметрами
-.\запуск_windows.ps1                    # Обычный запуск
-.\запуск_windows.ps1 -Minimal          # Минимальная конфигурация
-.\запуск_windows.ps1 -Monitoring       # С мониторингом
-.\запуск_windows.ps1 -Clean            # С очисткой Docker
-```
-
-### 🐳 Docker запуск (исправлено)
+### 2️⃣ **Запуск production системы:**
 ```bash
-# Создать .env файл (обязательно!)
-cp config.example.env .env
-# Укажите ваш OPENAI_API_KEY в .env
+# Сборка и запуск всех сервисов
+docker-compose -f docker-compose.production.yml up -d --build
 
-# Запуск исправленной версии
-docker-compose -f docker-compose.unified.yml down
-docker-compose -f docker-compose.unified.yml up -d --build
+# Проверка состояния
+docker-compose -f docker-compose.production.yml ps
 
-# Проверка статуса
-docker ps
-curl http://localhost:8051/health
+# Проверка здоровья
+curl http://localhost:8000/health
 ```
 
-### 🖥️ Локальный запуск
+### 3️⃣ **Тестирование MCP tools:**
 ```bash
-# Установка зависимостей
-pip install -r requirements.txt
+# Сохранение памяти
+curl -X POST "http://localhost:8000/memory/save" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Пользователь Alex предпочитает Python",
+    "user_id": "test_user"
+  }'
 
-# Запуск сервера
-python src/unified_memory_server.py
+# Поиск памяти
+curl -X POST "http://localhost:8000/memory/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "предпочтения программирования",
+    "user_id": "test_user"
+  }'
 ```
 
-## 🔌 Интеграция с Cursor/Claude
+---
 
-### 📁 Конфигурация MCP
-Добавьте в ваш MCP config файл:
+## 🔧 **ИНТЕГРАЦИЯ С CURSOR**
 
+### 📝 **Конфигурация MCP:**
 ```json
 {
   "mcpServers": {
-    "mcp-mem0-unified": {
-      "url": "http://localhost:8051/mcp",
-      "name": "MCP-Mem0 Unified Memory System",
-      "description": "Enterprise AI Memory with 15 tools"
+    "mcp-mem0-enterprise": {
+      "url": "http://localhost:8000/mcp",
+      "name": "Enterprise Memory System",
+      "description": "17 production-ready memory tools"
     }
   }
 }
 ```
 
-### 📍 Пути к конфигурации:
-- **Cursor**: `C:\Users\{username}\.cursor\mcp.json`
-- **Claude Desktop**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-## 🧪 Тестирование системы
-
-### ✅ Автоматические тесты
-```bash
-# Запуск comprehensive тестов всех 15 инструментов
-python tests/test_all_tools_comprehensive.py
-
-# Production ready тестирование
-python scripts/run_production_test.py
+### 🎯 **Использование в Cursor:**
 ```
-
-### 🏆 Результаты тестирования
-- **16/16 инструментов работают (100% успеха)**
-- **Среднее время ответа: 0.048 секунд**
-- **0% ошибок в production тестах**
-
-## 💡 Реальные сценарии использования
-
-### 👨‍💻 **Персональный AI-ассистент**
-```python
-# Агент помнит:
-- Ваши предпочтения в коде (Python, FastAPI, clean code)
-- Проекты над которыми работаете
-- Стиль коммуникации и терминологию
-- Техническая экспертиза и интересы
-
-# Результат: Персонализированные ответы на 100% релевантные вашему контексту
+@mcp-mem0-enterprise.save_memory content="Пользователь любит Python" user_id="dev_alex"
+@mcp-mem0-enterprise.search_memories query="языки программирования" user_id="dev_alex"
+@mcp-mem0-enterprise.save_graph_memory content="Alex работает с John над проектом API"
 ```
-
-### 🏢 **Корпоративный AI**
-```python
-# Система помнит:
-- Структуру компании и роли сотрудников  
-- Проекты, дедлайны, приоритеты
-- Корпоративные стандарты и процессы
-- История решений и их обоснования
-
-# Результат: Institutional memory, continuity при смене команд
-```
-
-### 📚 **Обучающий AI**
-```python
-# Адаптивное обучение:
-- Отслеживание прогресса ученика
-- Персонализация под стиль обучения
-- Связывание новых знаний с уже изученными
-- Выявление пробелов в знаниях
-
-# Результат: Truly adaptive learning experience
-```
-
-### 🛒 **E-commerce AI**
-```python
-# Умные рекомендации:
-- История покупок и предпочтения
-- Сезонные паттерны поведения
-- Связи между товарами и брендами
-- Ценовая чувствительность
-
-# Результат: Hyper-personalized shopping experience
-```
-
-## 🔬 Архитектурные преимущества
-
-### 🧠 **Hybrid Memory Architecture**
-- **Vector search** для семантического понимания
-- **Graph database** для complex reasoning
-- **Metadata indexing** для быстрого доступа
-- **Conflict resolution** для data consistency
-
-### ⚡ **Performance Optimizations**
-- **Lazy loading** для экономии памяти
-- **Caching strategies** для быстрого доступа
-- **Parallel processing** для multiple queries
-- **Graceful degradation** при сбоях
-
-### 🛡️ **Enterprise Features**
-- **Data validation** и quality controls
-- **Privacy controls** per user/session
-- **Audit trails** для compliance
-- **Backup/restore** capabilities
-
-## 📊 Метрики производительности
-
-### 🎯 **Функциональные метрики**
-- **Memory retention**: 100% (никакая информация не теряется)
-- **Search accuracy**: 98%+ semantic relevance
-- **Response time**: <50ms average
-- **Context awareness**: Multi-turn understanding
-
-### 🔧 **Технические метрики**  
-- **Uptime**: 99.9%+ с graceful degradation
-- **Scalability**: Поддержка тысяч пользователей
-- **Storage efficiency**: Optimized vector indexing
-- **API reliability**: Comprehensive error handling
-
-## 🚢 Production Deployment
-
-### 🐳 **Docker Production Setup**
-```yaml
-# Optimized для production
-services:
-  memory-server:
-    image: mcp-mem0:latest
-    replicas: 3
-    resources:
-      memory: 2GB
-      cpu: 1
-  
-  neo4j:
-    image: neo4j:5.15-enterprise
-    volumes:
-      - neo4j_data:/data
-    
-  postgres:
-    image: pgvector/pgvector:pg16
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-```
-
-### 🔒 **Security & Privacy**
-- **Data encryption** at rest и in transit
-- **User isolation** в multi-tenant setup
-- **API rate limiting** для защиты ресурсов
-- **GDPR compliance** с правом на забвение
-
-### 📈 **Monitoring & Observability**
-- **Health checks** на всех уровнях
-- **Performance metrics** в real-time
-- **Error tracking** с детальными логами
-- **Usage analytics** для optimization
-
-## 🤝 Contributing & Community
-
-### 🎯 **Roadmap**
-- [ ] **Multi-modal memory** (images, audio, video)
-- [ ] **Federated learning** для улучшения моделей
-- [ ] **Advanced reasoning** с formal logic
-- [ ] **Integration ecosystem** с популярными AI tools
-
-### 🔧 **Development**
-```bash
-# Setup development environment
-git clone https://github.com/your-org/mcp-mem0
-cd mcp-mem0
-pip install -r requirements_dev.txt
-
-# Run tests
-pytest tests/ -v
-
-# Contributing guidelines
-# See CONTRIBUTING.md
-```
-
-## 📚 Documentation
-
-- 📖 **[API Reference](docs/api-reference.md)** - Детальное описание всех endpoints
-- 🏗️ **[Architecture Guide](docs/architecture.md)** - Как устроена система  
-- 🚀 **[Deployment Guide](docs/deployment.md)** - Production deployment
-- 🧪 **[Testing Guide](docs/testing.md)** - Comprehensive testing strategy
-- 💡 **[Use Cases](docs/use-cases.md)** - Real-world examples
-
-## 🏆 Заключение
-
-**MCP-Mem0** - это не просто система памяти, это **intelligence amplifier** для ваших AI агентов. Она превращает stateless модели в **truly intelligent agents** с:
-
-- 🧠 **Human-like memory** с долгосрочным запоминанием
-- 🕸️ **Graph reasoning** для complex problem solving  
-- 📈 **Continuous learning** и улучшение со временем
-- 🎯 **Hyper-personalization** для каждого пользователя
-
-**Результат**: Ваши AI агенты становятся в разы умнее, полезнее и персонализированнее!
 
 ---
 
-**Status**: ✅ **Production Ready** | **License**: MIT | **Version**: 1.0.0
+## 🏗️ **АРХИТЕКТУРА СИСТЕМЫ**
 
-🚀 **Ready to revolutionize your AI agents? Start using MCP-Mem0 today!**
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   AI Agent      │    │  FastAPI-MCP    │    │   Memory        │
+│   (Cursor)      │◄──►│   Server        │◄──►│   Client        │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Redis         │    │   Mem0 v1.1     │
+                       │   (Events &     │    │   (Graph +      │
+                       │    Cache)       │    │    Vector)      │
+                       └─────────────────┘    └─────────────────┘
+                                                        │
+                                               ┌────────┴────────┐
+                                               ▼                 ▼
+                                    ┌─────────────────┐ ┌─────────────────┐
+                                    │   Memgraph      │ │   Supabase      │
+                                    │   (Graph)       │ │   (Vector)      │
+                                    └─────────────────┘ └─────────────────┘
+```
+
+### 🔄 **Data Flow:**
+1. **AI Agent** вызывает MCP tool
+2. **FastAPI-MCP** автоматически генерирует tool из endpoint
+3. **Memory Client** обрабатывает запрос через Mem0
+4. **Mem0** сохраняет в Graph (Memgraph) и Vector (Supabase) одновременно
+5. **Redis** обеспечивает синхронизацию и кэширование
+6. **Response** возвращается через MCP обратно к AI Agent
+
+---
+
+## 📁 **СТРУКТУРА ПРОЕКТА**
+
+```
+mcp-mem0/
+├── 🐳 Dockerfile                    # Production multi-stage build
+├── 🐳 docker-compose.production.yml # Production deployment
+├── 📊 requirements.txt              # Python dependencies
+├── ⚙️ pyproject.toml               # Project configuration
+├── 📝 .env.example                 # Environment template
+│
+├── 📂 src/                         # Source code
+│   ├── 🧠 fastapi_mcp_server.py   # Main MCP server (17 tools)
+│   ├── 💾 memory_client.py         # Enterprise memory client
+│   ├── 🔴 redis_service.py         # Redis integration
+│   ├── 🛠️ utils.py                # Utilities
+│   └── 📦 __init__.py              # Package init
+│
+├── 📚 docs/                        # Documentation
+│   ├── 📖 COMPREHENSIVE_TOOLS_GUIDE.md  # All 17 tools detailed
+│   ├── 🚀 DEPLOYMENT_GUIDE.md           # Production deployment
+│   ├── 🏗️ ENTERPRISE_ARCHITECTURE.md   # Architecture overview
+│   └── 📋 IMPLEMENTATION_LOG.md         # Development history
+│
+└── 📊 monitoring/                  # Monitoring & logs
+    ├── 📈 logs/                   # Application logs
+    └── 📊 backups/                # Data backups
+```
+
+---
+
+## 🛠️ **ТЕХНИЧЕСКИЙ СТЕК**
+
+### 🐍 **Backend:**
+- **FastAPI 0.104+** - modern web framework
+- **FastAPI-MCP** - automatic MCP tools generation
+- **Mem0 1.1+** - hybrid memory system
+- **Redis** - caching & synchronization
+- **Pydantic** - data validation
+
+### 🗄️ **Storage:**
+- **Supabase PostgreSQL** - vector embeddings storage
+- **Memgraph** - graph relationships storage
+- **Redis** - distributed cache
+
+### 🐳 **Infrastructure:**
+- **Docker** - containerization
+- **Docker Compose** - multi-service orchestration
+- **Uvicorn** - ASGI server
+- **Multi-stage builds** - optimized images
+
+### 🔧 **Integrations:**
+- **Model Context Protocol (MCP)** - AI agent communication
+- **OpenAI API** - embeddings generation
+- **Neo4j Driver** - graph database access
+
+---
+
+## 📊 **FEATURES & CAPABILITIES**
+
+### 🧠 **Memory Management:**
+- ✅ **Hybrid Storage** - Graph + Vector simultaneously
+- ✅ **Semantic Search** - embedding-based relevance
+- ✅ **Graph Traversal** - relationship-aware queries
+- ✅ **Context Validation** - quality assurance
+- ✅ **Conflict Resolution** - contradiction handling
+
+### 🔄 **Real-time Synchronization:**
+- ✅ **Redis Events** - cross-component communication
+- ✅ **Background Tasks** - non-blocking operations
+- ✅ **Distributed Locking** - consistency guarantees
+- ✅ **Cache Management** - intelligent TTL policies
+
+### 🏢 **Enterprise Features:**
+- ✅ **Multi-tenancy** - user/agent/session isolation
+- ✅ **Error Recovery** - comprehensive exception handling
+- ✅ **Monitoring** - metrics collection & health checks
+- ✅ **Logging** - structured logging with correlation IDs
+- ✅ **Security** - input validation & sanitization
+
+### 🚀 **Production Readiness:**
+- ✅ **Docker Deployment** - containerized architecture
+- ✅ **Health Checks** - automated monitoring
+- ✅ **Graceful Shutdown** - proper resource cleanup
+- ✅ **Resource Limits** - controlled resource usage
+- ✅ **Non-root Execution** - security best practices
+
+---
+
+## 📖 **ДОКУМЕНТАЦИЯ**
+
+### 📚 **Основные руководства:**
+- **[📖 COMPREHENSIVE_TOOLS_GUIDE.md](COMPREHENSIVE_TOOLS_GUIDE.md)** - подробное описание всех 17 tools
+- **[🚀 DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - полное руководство по development
+- **[🏗️ ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md)** - архитектурный обзор
+- **[📋 IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)** - история развития проекта
+
+### 🔗 **API Documentation:**
+- **OpenAPI Docs:** `http://localhost:8000/docs`
+- **ReDoc:** `http://localhost:8000/redoc`
+- **MCP Endpoint:** `http://localhost:8000/mcp`
+- **Health Check:** `http://localhost:8000/health`
+
+---
+
+## 🧪 **ТЕСТИРОВАНИЕ**
+
+### 🔍 **Manual Testing:**
+```bash
+# HTTP API Testing
+curl -X POST "http://localhost:8000/memory/save" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Test memory", "user_id": "test"}'
+
+# MCP Inspector
+npx @modelcontextprotocol/inspector
+# URL: http://localhost:8000/mcp
+```
+
+### 🎯 **Cursor Testing:**
+```
+@mcp-mem0-enterprise.save_memory content="Test" user_id="test"
+@mcp-mem0-enterprise.search_memories query="test" user_id="test"
+@mcp-mem0-enterprise.health
+```
+
+### 📊 **Automated Testing:**
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# All endpoints test
+bash test_all_tools.sh
+```
+
+---
+
+## 🔧 **TROUBLESHOOTING**
+
+### ❌ **Общие проблемы:**
+
+#### 🔌 **Connection Issues:**
+```bash
+# Database
+echo $DATABASE_URL  # Проверить порт 5432 (не 6543!)
+
+# Redis
+docker exec redis redis-cli ping
+
+# Memgraph
+docker exec memgraph mgconsole
+```
+
+#### 🐳 **Docker Issues:**
+```bash
+# Rebuild containers
+docker-compose -f docker-compose.production.yml down
+docker-compose -f docker-compose.production.yml up --build -d
+
+# Check logs
+docker-compose -f docker-compose.production.yml logs -f
+```
+
+#### 🔧 **MCP Issues:**
+```bash
+# Check MCP endpoint
+curl http://localhost:8000/mcp
+
+# Restart MCP server
+docker-compose -f docker-compose.production.yml restart mcp-memory-server
+```
+
+---
+
+## 🤝 **CONTRIBUTING**
+
+### 🔄 **Development Workflow:**
+1. Fork repository
+2. Create feature branch
+3. Make changes with tests
+4. Submit pull request
+5. Code review & merge
+
+### 📋 **Code Standards:**
+- **Python 3.11+** with type hints
+- **Black** code formatting
+- **Pylint** code quality
+- **Pytest** for testing
+- **Docker** for deployment
+
+---
+
+## 📜 **LICENSE**
+
+MIT License - см. [LICENSE](LICENSE) файл для подробностей.
+
+---
+
+## 🙏 **ACKNOWLEDGMENTS**
+
+- **[FastAPI-MCP](https://github.com/tadata-ru/fastapi-mcp)** - MCP integration framework
+- **[Mem0](https://mem0.ai/)** - AI memory platform
+- **[Model Context Protocol](https://modelcontextprotocol.io/)** - standardized AI-app communication
+- **[Memgraph](https://memgraph.com/)** - real-time graph database
+- **[Supabase](https://supabase.io/)** - open source Firebase alternative
+
+---
+
+<div align="center">
+
+**🧠 Enterprise MCP-Mem0 Server v2.0**
+
+*Production-ready Memory System for AI Agents*
+
+**[🚀 Get Started](DEPLOYMENT_GUIDE.md) | [📖 Documentation](COMPREHENSIVE_TOOLS_GUIDE.md) | [🏗️ Architecture](ENTERPRISE_ARCHITECTURE.md)**
+
+</div>

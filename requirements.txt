@@ -1,13 +1,53 @@
-# FastAPI-MCP Memory Server Dependencies
-fastapi>=0.108.0
-uvicorn[standard]>=0.25.0
-fastapi-mcp>=0.1.0
+# 🏗️ ENTERPRISE MCP-MEM0 DEPENDENCIES v2.0
+
+# ========================= CORE FRAMEWORK =========================
+# FastAPI и MCP интеграция
+fastapi>=0.104.1
+fastapi-mcp>=0.2.0
+uvicorn[standard]>=0.24.0
 pydantic>=2.5.0
+
+# ========================= MEMORY SYSTEM =========================
+# Mem0 для Graph+Vector памяти
+mem0ai>=0.1.0
+
+# ========================= DATABASE DRIVERS =========================
+# PostgreSQL для Supabase
+psycopg2-binary>=2.9.7
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+
+# Neo4j driver для Memgraph Graph Memory
+neo4j>=5.15.0
+
+# Vector store поддержка
+vecs>=0.4.0
+
+# ========================= REDIS INTEGRATION =========================
+# Redis для кэширования и синхронизации
+redis[hiredis]>=5.0.0
+celery[redis]>=5.3.0
+
+# ========================= AI & EMBEDDINGS =========================
+# OpenAI для LLM и embeddings
+openai>=1.0.0
+
+# ========================= UTILITIES =========================
+# Асинхронные утилиты
+aiofiles>=23.0.0
+httpx>=0.25.0
+
+# Логирование и мониторинг
+structlog>=23.0.0
+prometheus-client>=0.19.0
+
+# Конфигурация
 python-dotenv>=1.0.0
-requests>=2.31.0
+pydantic-settings>=2.0.0
 
-# Mem0 Open Source SDK - самая свежая версия 0.1.104
-mem0ai>=0.1.104
-
-# Optional: for better performance
-python-multipart>=0.0.6 
+# ========================= DEVELOPMENT =========================
+# Только для разработки
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+isort>=5.12.0 
