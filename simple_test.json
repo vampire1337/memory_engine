@@ -1,9 +1,0 @@
-{
-  "content": "Technical memory: Docker multi-stage builds reduce image size significantly. Copy from builder stage only necessary artifacts.",
-  "user_id": "heist1337",
-  "metadata": {
-    "category": "technical",
-    "priority": "high",
-    "tags": ["docker", "optimization"]
-  }
-} 

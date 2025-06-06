@@ -1,0 +1,13 @@
+{
+  "content": "🚀 Technical Memory: Docker multi-stage builds reduce image size by 70%. Using COPY --from=builder pattern for optimal layer caching and minimal attack surface.",
+  "user_id": "demo_user",
+  "agent_id": "unified_memory_demo",
+  "session_id": "example_session",
+  "metadata": {
+    "category": "technical",
+    "priority": "high",
+    "tags": ["docker", "optimization", "security"],
+    "source": "best_practices",
+    "confidence": 0.95
+  }
+} 

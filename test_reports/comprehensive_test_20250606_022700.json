@@ -1,0 +1,122 @@
+{
+  "test_timestamp": "2025-06-06T02:27:00.166842",
+  "total_tools": 16,
+  "successful_tools": 14,
+  "failed_tools": 2,
+  "success_rate": 87.5,
+  "average_execution_time": 0.048004359006881714,
+  "detailed_results": [
+    {
+      "tool_name": "Health Check",
+      "endpoint": "/health",
+      "success": false,
+      "execution_time": 0.013324975967407227,
+      "error_message": "HTTP 405: {\"detail\":\"Method Not Allowed\"}"
+    },
+    {
+      "tool_name": "Graph Status",
+      "endpoint": "/graph/status",
+      "success": false,
+      "execution_time": 0.0031309127807617188,
+      "error_message": "HTTP 405: {\"detail\":\"Method Not Allowed\"}"
+    },
+    {
+      "tool_name": "Save Memory",
+      "endpoint": "/memory/save",
+      "success": true,
+      "execution_time": 0.04989051818847656,
+      "error_message": null
+    },
+    {
+      "tool_name": "Search Memories",
+      "endpoint": "/memory/search",
+      "success": true,
+      "execution_time": 0.05155324935913086,
+      "error_message": null
+    },
+    {
+      "tool_name": "Get All Memories",
+      "endpoint": "/memory/get-all",
+      "success": true,
+      "execution_time": 0.052971601486206055,
+      "error_message": null
+    },
+    {
+      "tool_name": "Save Verified Memory",
+      "endpoint": "/memory/save-verified",
+      "success": true,
+      "execution_time": 0.05267810821533203,
+      "error_message": null
+    },
+    {
+      "tool_name": "Get Accurate Context",
+      "endpoint": "/memory/get-context",
+      "success": true,
+      "execution_time": 0.0514216423034668,
+      "error_message": null
+    },
+    {
+      "tool_name": "Validate Project Context",
+      "endpoint": "/memory/validate-project-context",
+      "success": true,
+      "execution_time": 0.05153703689575195,
+      "error_message": null
+    },
+    {
+      "tool_name": "Resolve Context Conflict",
+      "endpoint": "/memory/resolve-conflict",
+      "success": true,
+      "execution_time": 0.05258512496948242,
+      "error_message": null
+    },
+    {
+      "tool_name": "Audit Memory Quality",
+      "endpoint": "/memory/audit-quality",
+      "success": true,
+      "execution_time": 0.052976369857788086,
+      "error_message": null
+    },
+    {
+      "tool_name": "Save Project Milestone",
+      "endpoint": "/memory/save-milestone",
+      "success": true,
+      "execution_time": 0.0527949333190918,
+      "error_message": null
+    },
+    {
+      "tool_name": "Get Current Project State",
+      "endpoint": "/memory/get-project-state",
+      "success": true,
+      "execution_time": 0.06245994567871094,
+      "error_message": null
+    },
+    {
+      "tool_name": "Track Project Evolution",
+      "endpoint": "/memory/track-evolution",
+      "success": true,
+      "execution_time": 0.06362724304199219,
+      "error_message": null
+    },
+    {
+      "tool_name": "Save Graph Memory",
+      "endpoint": "/graph/save-memory",
+      "success": true,
+      "execution_time": 0.052147865295410156,
+      "error_message": null
+    },
+    {
+      "tool_name": "Search Graph Memory",
+      "endpoint": "/graph/search",
+      "success": true,
+      "execution_time": 0.05283951759338379,
+      "error_message": null
+    },
+    {
+      "tool_name": "Get Entity Relationships",
+      "endpoint": "/graph/entity-relationships",
+      "success": true,
+      "execution_time": 0.052130699157714844,
+      "error_message": null
+    }
+  ]
+}

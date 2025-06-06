@@ -171,6 +171,65 @@ def filter_accurate_memories(memories: List[Dict], min_confidence: int = 5) -> L
     
     return filtered
 
+def get_mem0_config(provider: str = "openai") -> dict:
+    """
+    Получить конфигурацию для Mem0
+    """
+    base_config = {
+        "version": "v1.1"
+    }
+    
+    if provider == "openai":
+        return {
+            **base_config,
+            "embedder": {
+                "provider": "openai",
+                "config": {
+                    "model": "text-embedding-3-small"
+                    # Убираю embedding_dims - не поддерживается в текущей версии
+                }
+            },
+            "llm": {
+                "provider": "openai",
+                "config": {
+                    "model": "gpt-4",
+                    "temperature": 0.1
+                }
+            },
+            "vector_store": {
+                "provider": "chroma",
+                "config": {
+                    "collection_name": "unified-memory-v2",
+                    "path": "./data/chroma_db"
+                }
+            }
+        }
+    elif provider == "nomic":
+        return {
+            **base_config,
+            "embedder": {
+                "provider": "nomic",
+                "config": {
+                    "model": "nomic-embed-text"
+                    # Убираю embedding_dims - не поддерживается в текущей версии
+                }
+            },
+            "llm": {
+                "provider": "openai",
+                "config": {
+                    "model": "gpt-4",
+                    "temperature": 0.1
+                }
+            },
+            "vector_store": {
+                "provider": "chroma",
+                "config": {
+                    "collection_name": "unified-memory-v2",
+                    "path": "./data/chroma_db"
+                }
+            }
+        }
+
 def get_mem0_client():
     # Get LLM provider and configuration
     llm_provider = os.getenv('LLM_PROVIDER')
@@ -220,8 +279,8 @@ def get_mem0_client():
         config["embedder"] = {
             "provider": "openai",
             "config": {
-                "model": embedding_model or "text-embedding-3-small",
-                "embedding_dims": 1536  # Default for text-embedding-3-small
+                "model": embedding_model or "text-embedding-3-small"
+                # Убираю embedding_dims - не поддерживается в текущей версии
             }
         }
         
@@ -233,8 +292,8 @@ def get_mem0_client():
         config["embedder"] = {
             "provider": "ollama",
             "config": {
-                "model": embedding_model or "nomic-embed-text",
-                "embedding_dims": 768  # Default for nomic-embed-text
+                "model": embedding_model or "nomic-embed-text"
+                # Убираю embedding_dims - не поддерживается в текущей версии
             }
         }
         

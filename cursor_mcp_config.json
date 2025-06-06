@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mcp-mem0-unified": {
+      "url": "http://localhost:8051/mcp",
+      "name": "MCP-Mem0 Unified Memory System",
+      "description": "Enterprise-grade AI Memory with 15 tools (11 basic + 4 graph)",
+      "timeout": 30000,
+      "headers": {
+        "Accept": "text/event-stream",
+        "Cache-Control": "no-cache"
+      }
+    }
+  }
+} 

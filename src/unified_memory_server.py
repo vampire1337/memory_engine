@@ -12,6 +12,8 @@ from typing import Optional, List, Dict, Any, Tuple, Union
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi_mcp import FastApiMCP
 
 # Mem0 с поддержкой графов
@@ -49,7 +51,7 @@ class UnifiedMemoryConfig:
         """Получить оптимальную конфигурацию Mem0"""
         env_config = UnifiedMemoryConfig.get_environment_config()
         
-        # Базовая конфигурация
+        # Базовая конфигурация (упрощенная для совместимости)
         config = {
             "llm": {
                 "provider": "openai",
@@ -195,6 +197,15 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
+)
+
+# Добавляем CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # =================== БАЗОВЫЕ 11 ENDPOINTS ===================
@@ -627,11 +638,34 @@ async def root():
 # =================== MCP ИНТЕГРАЦИЯ ===================
 
 def create_unified_mcp_server():
-    """Создать unified MCP сервер"""
-    mcp = FastApiMCP(app)
-    mcp.mount()
-    logger.info("🚀 Unified MCP Server создан с 15 инструментами")
-    return app
+    """Создать unified MCP сервер с правильной конфигурацией транспорта"""
+    try:
+        # Создаем MCP сервер с правильным API
+        mcp = FastApiMCP(app)
+        
+        # Монтируем MCP сервер - FastApiMCP создаст правильный /mcp endpoint автоматически
+        mcp.mount()
+        
+        logger.info("🚀 Unified MCP Server создан с 15 инструментами")
+        logger.info("📡 MCP Transport: Server-Sent Events (SSE)")
+        logger.info("🔧 MCP Endpoint: /mcp (создан FastApiMCP)")
+        logger.info("✅ Все инструменты зарегистрированы автоматически")
+        
+        return app
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка создания MCP сервера: {e}")
+        logger.info("⚠️ Возвращаем базовый FastAPI app")
+        return app
+
+# Обработчик ошибок
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Global exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {str(exc)}"}
+    )
 
 if __name__ == "__main__":
     import uvicorn

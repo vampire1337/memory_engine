@@ -1,0 +1,10 @@
+{
+  "query": "Docker optimization techniques",
+  "user_id": "demo_user",
+  "limit": 10,
+  "metadata": {
+    "search_type": "semantic",
+    "include_graph": true,
+    "relationship_depth": 2
+  }
+} 
