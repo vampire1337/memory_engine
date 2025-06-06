@@ -37,7 +37,7 @@ class UnifiedMemoryConfig:
     def get_environment_config():
         """Получить конфигурацию из переменных окружения"""
         return {
-            "openai_api_key": os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY"),
+            "openai_api_key": os.getenv("OPENAI_API_KEY"),
             "database_url": os.getenv("DATABASE_URL"),
             "postgres_url": os.getenv("POSTGRES_URL"),
             "neo4j_url": os.getenv("NEO4J_URL", "bolt://localhost:7687"),
@@ -45,7 +45,12 @@ class UnifiedMemoryConfig:
             "neo4j_password": os.getenv("NEO4J_PASSWORD", "graphmemory123"),
             "supabase_url": os.getenv("SUPABASE_URL"),
             "supabase_key": os.getenv("SUPABASE_ANON_KEY"),
-            "server_port": int(os.getenv("MEMORY_SERVER_PORT", "8051"))
+            "server_port": int(os.getenv("MEMORY_SERVER_PORT", "8051")),
+            "memgraph_url": os.getenv("MEMGRAPH_URL", "bolt://localhost:7687"),
+            "memgraph_username": os.getenv("MEMGRAPH_USERNAME", "memgraph"),
+            "memgraph_password": os.getenv("MEMGRAPH_PASSWORD", "memgraph"),
+            "LLM_MODEL": os.getenv("LLM_MODEL", "gpt-4o-mini"),
+            "EMBEDDING_MODEL": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
         }
     
 
@@ -60,15 +65,78 @@ class UnifiedMemoryClient:
         
         if self.has_mem0:
             try:
-                # Mem0 Open Source - БЕЗ API ключа!
-                self.memory = Memory()
-                logger.info("✅ Mem0 Open Source инициализирован (без API ключа)")
-                self.has_graph_support = True  # Современные версии поддерживают графы
+                # Получаем переменные окружения
+                env_config = UnifiedMemoryConfig.get_environment_config()
+                
+                # ПОЛНАЯ Graph Memory конфигурация согласно Mem0 2025 рекомендациям
+                logger.info("🔄 Инициализация Mem0 Graph Memory согласно рекомендациям 2025...")
+                self.has_graph_support = True
+                
+                # Конфигурация согласно документации Mem0
+                config = {
+                    "version": "v1.1",
+                    "graph_store": {
+                        "provider": "memgraph", 
+                        "config": {
+                            "url": env_config["memgraph_url"],
+                            "username": env_config["memgraph_username"],
+                            "password": env_config["memgraph_password"],
+                        }
+                    },
+                    "vector_store": {
+                        "provider": "supabase",
+                        "config": {
+                            "url": env_config.get("DATABASE_URL")
+                        }
+                    },
+                    "llm": {
+                        "provider": "openai",
+                        "config": {
+                            "model": env_config.get("LLM_MODEL"),
+                            "api_key": env_config.get("openai_api_key")
+                        }
+                    },
+                    "embedder": {
+                        "provider": "openai", 
+                        "config": {
+                            "model": env_config.get("EMBEDDING_MODEL"),
+                            "api_key": env_config.get("openai_api_key")
+                        }
+                    }
+                }
+                
+                # Инициализируем Memory с полной конфигурацией (правильный API)
+                self.memory = Memory.from_config(config_dict=config)
+                logger.info("✅ Mem0 Open Source с ПОЛНОЙ Graph Memory инициализирован")
+                logger.info("🔗 Graph Memory: АКТИВЕН | Vector Memory: АКТИВЕН | Hybrid Search: ДОСТУПЕН")
+                
             except Exception as e:
-                logger.error(f"❌ Ошибка создания Memory: {e}")
-                self.memory = None
-                self.has_mem0 = False
-                self.has_graph_support = False
+                logger.error(f"❌ Ошибка создания Graph Memory: {e}")
+                # Fallback к векторной конфигурации
+                try:
+                    fallback_config = {
+                        "vector_store": {
+                            "provider": "supabase",
+                            "config": {
+                                "url": env_config["database_url"]
+                            }
+                        },
+                        "llm": {
+                            "provider": "openai",
+                            "config": {
+                                "api_key": env_config["openai_api_key"],
+                                "model": "gpt-4o-mini"
+                            }
+                        }
+                    }
+                    self.memory = Memory.from_config(config_dict=fallback_config)
+                    logger.warning("⚠️ Использую векторную Mem0 конфигурацию (без графов)")
+                    self.has_graph_support = False
+                except Exception as e2:
+                    logger.error(f"❌ Критическая ошибка инициализации: {e2}")
+                    self.memory = None
+                    self.has_mem0 = False
+                    self.has_graph_support = False
         else:
             self.has_graph_support = False
         
@@ -88,7 +156,7 @@ class UnifiedMemoryClient:
             "mem0_available": self.has_mem0,
             "graph_support": self.has_graph_support,
             "components": {
-                "openai_configured": bool(env_config["openai_api_key"]),
+                "openai_configured": bool(env_config["OPENAI_API_KEY"]),
                 "neo4j_configured": bool(env_config["neo4j_password"]),
                 "neo4j_url": env_config["neo4j_url"],
                 "memory_client": "active" if self.memory else "fallback"
@@ -198,20 +266,24 @@ async def save_memory(request: MemoryRequest) -> Dict[str, Any]:
                 "message": "Saved in fallback storage"
             }
         
-        # Mem0 режим - новый API
+        # Mem0 режим - новый API совместимый с 0.1.104
         messages = [{"role": "user", "content": request.content}]
+        
+        # Подготавливаем metadata с session_id и agent_id
+        enhanced_metadata = request.metadata or {}
+        if request.session_id:
+            enhanced_metadata["session_id"] = request.session_id
+        if request.agent_id:
+            enhanced_metadata["agent_id"] = request.agent_id
+        
         kwargs = {
             "messages": messages,
             "user_id": request.user_id
         }
         
-        # Добавляем опциональные параметры если есть
-        if request.agent_id:
-            kwargs["agent_id"] = request.agent_id
-        if request.session_id:
-            kwargs["session_id"] = request.session_id
-        if request.metadata:
-            kwargs["metadata"] = request.metadata
+        # Добавляем metadata если есть
+        if enhanced_metadata:
+            kwargs["metadata"] = enhanced_metadata
             
         result = client.memory.add(**kwargs)
         
@@ -245,19 +317,18 @@ async def search_memories(request: SearchRequest) -> Dict[str, Any]:
                 "total": len(results)
             }
         
-        # Mem0 поиск - новый API
+        # Mem0 поиск - новый API совместимый с 0.1.104
         kwargs = {
             "query": request.query,
             "user_id": request.user_id
         }
         
-        # Добавляем опциональные параметры
-        if request.agent_id:
-            kwargs["agent_id"] = request.agent_id
-        if request.session_id:
-            kwargs["session_id"] = request.session_id
+        # Добавляем limit если указан
         if request.limit:
             kwargs["limit"] = request.limit
+            
+        # NOTE: session_id и agent_id не поддерживаются напрямую в search API
+        # Они могут использоваться в фильтрации результатов позже если нужно
             
         results = client.memory.search(**kwargs)
         
@@ -290,16 +361,13 @@ async def get_all_memories(request: GetMemoriesRequest) -> Dict[str, Any]:
                 "total": len(results)
             }
         
-        # Mem0 режим - новый API
+        # Mem0 режим - новый API совместимый с 0.1.104
         kwargs = {
             "user_id": request.user_id
         }
         
-        # Добавляем опциональные параметры
-        if request.agent_id:
-            kwargs["agent_id"] = request.agent_id
-        if request.session_id:
-            kwargs["session_id"] = request.session_id
+        # NOTE: session_id и agent_id не поддерживаются в get_all API
+        # Фильтрация по этим параметрам может быть добавлена позже
             
         memories = client.memory.get_all(**kwargs)
         

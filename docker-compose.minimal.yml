@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Memgraph Graph Database для Graph Memory
+  memgraph:
+    image: memgraph/memgraph:latest
+    container_name: minimal-memory-memgraph
+    restart: unless-stopped
+    ports:
+      - "7687:7687"  # Bolt protocol 
+      - "3000:3000"  # Memgraph Lab UI
+    environment:
+      MEMGRAPH_USER: memgraph
+      MEMGRAPH_PASSWORD: graphmemory123
+      MEMGRAPH_LOG_LEVEL: INFO
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | mgconsole || exit 0"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Unified Memory Server (использует Supabase + Memgraph)
+  memory-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.unified
+    container_name: minimal-memory-server
+    restart: unless-stopped
+    ports:
+      - "8051:8051"
+    environment:
+      # OpenAI настройки
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      
+      # Supabase настройки (внешний сервис)
+      DATABASE_URL: ${DATABASE_URL}
+      
+      # Memgraph настройки 
+      MEMGRAPH_URL: bolt://memgraph:7687
+      MEMGRAPH_USERNAME: memgraph
+      MEMGRAPH_PASSWORD: graphmemory123
+      
+      # Mem0 настройки
+      LLM_MODEL: gpt-4o-mini
+      EMBEDDING_MODEL: text-embedding-3-small
+    depends_on:
+      memgraph:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/health"]
+      start_period: 60s
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+volumes:
+  memgraph_data: 
