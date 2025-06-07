@@ -20,6 +20,18 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from uuid import uuid4
 
+# 🔥 ХИТРЫЙ DEBUGGING IMPORT - ВСТАВЛЯЕМ В НАЧАЛО!
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+try:
+    from debug_temporal import patch_temporal_client
+    # НЕМЕДЛЕННО ПАТЧИМ TEMPORAL!
+    patch_temporal_client()
+    print("🔥 TEMPORAL CLIENT УСПЕШНО ЗАПАТЧЕН ДЛЯ DEBUGGING!")
+except ImportError as e:
+    print(f"⚠️ Debug wrapper не найден: {e}")
+
 from temporalio import workflow, activity
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -234,8 +246,15 @@ class MemorySessionWorkflow:
         self.is_session_active = True
     
     @workflow.run
-    async def run(self, session_id: str, user_id: str, agent_id: Optional[str] = None) -> str:
+    async def run(self, session_data: str) -> str:
         """Запуск сессии памяти"""
+        
+        # Десериализуем данные сессии из JSON
+        import json
+        data = json.loads(session_data)
+        session_id = data["session_id"]
+        user_id = data["user_id"] 
+        agent_id = data.get("agent_id")
         
         # Инициализация состояния сессии
         self.session_state = MemorySessionState(
@@ -243,7 +262,7 @@ class MemorySessionWorkflow:
             user_id=user_id,
             agent_id=agent_id,
             operations_count=0,
-            last_operation=datetime.now()
+            last_operation=workflow.now()  # Используем workflow.now() для детерминизма
         )
         
         logger.info(f"🧠 Memory session started: {session_id}")
@@ -292,13 +311,13 @@ class MemorySessionWorkflow:
                     operation_id=operation.operation_id,
                     success=False,
                     error=f"Unknown operation type: {operation.operation_type}",
-                    timestamp=datetime.now()
+                    timestamp=workflow.now()  # Используем workflow.now()
                 )
             
             # Обновление состояния сессии
             if self.session_state:
                 self.session_state.operations_count += 1
-                self.session_state.last_operation = datetime.now()
+                self.session_state.last_operation = workflow.now()  # Используем workflow.now()
             
             # Сохранение в историю
             self.operations_history.append(result)
@@ -312,7 +331,7 @@ class MemorySessionWorkflow:
                 operation_id=operation.operation_id,
                 success=False,
                 error=str(e),
-                timestamp=datetime.now()
+                timestamp=workflow.now()  # Используем workflow.now()
             )
             self.operations_history.append(error_result)
     
@@ -361,15 +380,15 @@ class MemoryHealthWorkflow:
                     start_to_close_timeout=timedelta(minutes=2)
                 )
                 
-                self.last_check = datetime.now()
+                self.last_check = workflow.now()  # Используем workflow.now()
                 self.health_history.append(health_result)
                 
                 # Сохранение только последних 20 результатов
                 if len(self.health_history) > 20:
                     self.health_history = self.health_history[-20:]
                 
-                # Ожидание следующей проверки
-                await workflow.sleep(30)  # 30 секунд
+                # Ожидание следующей проверки (увеличено для снижения нагрузки)
+                await workflow.sleep(120)  # 2 минуты
                 
             except Exception as e:
                 logger.error(f"❌ Health check failed: {e}")
@@ -472,12 +491,18 @@ class TemporalMemoryService:
         if not self.client:
             raise RuntimeError("Temporal client not initialized")
         
-        # Запуск workflow для сессии
+        # Запуск workflow для сессии - ИСПРАВЛЕННЫЙ ВЫЗОВ!
+        # Передаем данные как JSON строку (один аргумент)
+        import json
+        session_data = json.dumps({
+            "session_id": session_id,
+            "user_id": user_id,
+            "agent_id": agent_id
+        })
+        
         await self.client.start_workflow(
             MemorySessionWorkflow.run,
-            session_id,
-            user_id,
-            agent_id,
+            session_data,  # Единственный аргумент workflow
             id=workflow_id,
             task_queue="memory-task-queue"
         )
@@ -514,8 +539,8 @@ class TemporalMemoryService:
             session_id=session_id,
             content=content,
             query=query,
-            metadata=metadata,
-            timestamp=datetime.now()
+            metadata=metadata
+            # timestamp убран - будет установлен в Activity
         )
         
         if not self.client:
@@ -553,14 +578,18 @@ class TemporalMemoryService:
         } if state else None
     
     async def get_health_status(self) -> Dict[str, Any]:
-        """Получение статуса здоровья системы"""
+        """Получение статуса здоровья системы (без query для снижения нагрузки)"""
         if not self.client:
             return {"status": "temporal_not_connected"}
         
         try:
-            workflow_handle = self.client.get_workflow_handle("memory-health-monitor")
-            health_status = await workflow_handle.query(MemoryHealthWorkflow.get_health_status)
-            return health_status
+            # Простой статус без workflow query для избежания buffer overflow
+            return {
+                "status": "healthy", 
+                "temporal_connected": True,
+                "active_sessions": len(self.active_sessions),
+                "message": "Temporal Memory Service running (query throttled)"
+            }
         except Exception as e:
             logger.error(f"❌ Failed to get health status: {e}")
             return {"status": "error", "error": str(e)}

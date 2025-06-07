@@ -27,7 +27,7 @@ rank-bm25>=0.2.2
 
 # ========================= TEMPORAL WORKFLOW ENGINE =========================
 # Temporal.io для замены Redis - максимальная надежность
-temporalio>=1.6.0
+temporalio>=1.12.0
 
 # ========================= AI & EMBEDDINGS =========================
 # OpenAI для LLM и embeddings

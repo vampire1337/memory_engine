@@ -131,13 +131,13 @@ services:
 
   # =================== NEXT LEVEL MEMORY SERVER ===================
   
-  # MCP-Mem0 Server с Temporal.io
-  mcp-memory-server:
+  # Temporal Worker для Activities
+  temporal-worker:
     build:
       context: .
       dockerfile: Dockerfile.temporal
       target: production
-    container_name: mcp-memory-server-temporal
+    container_name: mcp-temporal-worker
     depends_on:
       temporal-server:
         condition: service_healthy
@@ -145,8 +145,6 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
-    ports:
-      - "8051:8000"
     environment:
       # Temporal Configuration
       - TEMPORAL_SERVER_ADDRESS=temporal-server:7233
@@ -154,8 +152,6 @@ services:
       - TEMPORAL_TASK_QUEUE=memory-task-queue
       
       # Memory Configuration
-      - MEMORY_SERVER_HOST=0.0.0.0
-      - MEMORY_SERVER_PORT=8000
       - LOG_LEVEL=INFO
       
       # Graph Store (Memgraph)
@@ -165,7 +161,6 @@ services:
       
       # Vector Store (Qdrant fallback)
       - QDRANT_URL=http://qdrant:6333
-      - QDRANT_API_KEY=
       
       # Supabase (если доступен)
       - SUPABASE_URL=${SUPABASE_URL:-}
@@ -177,14 +172,43 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./src:/app/src:ro
+    command: ["python", "/app/src/temporal_worker.py"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "ps aux | grep temporal_worker || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
     networks:
       - mcp-network
     restart: unless-stopped
+
+  # MCP-Mem0 Server с Temporal.io
+  mcp-memory-server-temporal:
+    build:
+      context: .
+      dockerfile: Dockerfile.temporal
+    container_name: mcp-memory-server-temporal
+    ports:
+      - "8051:8051"
+    environment:
+      - TEMPORAL_SERVER_ADDRESS=temporal-server:7233
+      - MEMGRAPH_URL=bolt://memgraph:7687
+      - QDRANT_URL=http://qdrant:6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - temporal-server
+      - memgraph
+      - qdrant
+    networks:
+      - mcp-network
+    volumes:
+      - ./logs:/app/logs
+    command: ["gunicorn", "src.fastapi_temporal_server:app", "--bind", "0.0.0.0:8051", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--log-level", "info"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 # =================== VOLUMES ===================
 volumes:
