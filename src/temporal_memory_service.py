@@ -431,13 +431,19 @@ class TemporalMemoryService:
                 ]
             )
             
-            # Запуск health monitoring workflow
-            await self.client.start_workflow(
-                MemoryHealthWorkflow.run,
-                id="memory-health-monitor",
-                task_queue="memory-task-queue"
-            )
-            logger.info("💊 Health monitoring workflow started")
+            # Запуск health monitoring workflow (с проверкой на существование)
+            try:
+                await self.client.start_workflow(
+                    MemoryHealthWorkflow.run,
+                    id="memory-health-monitor",
+                    task_queue="memory-task-queue"
+                )
+                logger.info("💊 Health monitoring workflow started")
+            except Exception as e:
+                if "already started" in str(e).lower():
+                    logger.info("💊 Health monitoring workflow already running")
+                else:
+                    logger.warning(f"⚠️ Health monitoring workflow issue: {e}")
             
             logger.info("🏛️ Temporal Memory Service started")
             

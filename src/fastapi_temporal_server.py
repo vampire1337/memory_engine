@@ -167,15 +167,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =================== MCP PROTOCOL INTEGRATION ===================
-
-# Инициализация FastAPI-MCP согласно документации
-from fastapi_mcp import FastApiMCP
-
-mcp = FastApiMCP(app)
-mcp.mount()  # Автоматическая генерация MCP tools из endpoints
-
-logger.info("✅ FastAPI-MCP интегрирован: /mcp endpoint активен")
+# MCP будет инициализирован ПОСЛЕ определения всех endpoints
 
 
 # =================== DEPENDENCY INJECTION ===================
@@ -192,7 +184,7 @@ async def get_temporal() -> TemporalMemoryService:
     return temporal_service
 
 
-# =================== 11 БАЗОВЫХ MEMORY TOOLS с TEMPORAL ===================
+# =================== ОСНОВНЫЕ MEMORY TOOLS с TEMPORAL ===================
 
 @app.post("/memory/save", 
           operation_id="save_memory",
@@ -471,6 +463,179 @@ async def search_graph_memory(
         raise HTTPException(status_code=500, detail=f"Ошибка поиска по графовой памяти: {str(e)}")
 
 
+# =================== ДОПОЛНИТЕЛЬНЫЕ ENTERPRISE MEMORY TOOLS ===================
+
+@app.post("/memory/update",
+          operation_id="update_memory",
+          summary="Обновить память",
+          description="Обновляет существующую память по ID")
+async def update_memory(
+    memory_id: str,
+    content: str,
+    user_id: str = "user",
+    metadata: Optional[Dict[str, Any]] = None,
+    client: EnterpriseMemoryClient = Depends(get_memory_client)
+) -> Dict[str, Any]:
+    try:
+        result = await client.update_memory(
+            memory_id=memory_id,
+            content=content,
+            user_id=user_id,
+            metadata=metadata
+        )
+        
+        logger.info(f"✅ Память обновлена: {memory_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка обновления памяти: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления памяти: {str(e)}")
+
+
+@app.delete("/memory/delete/{memory_id}",
+           operation_id="delete_memory",
+           summary="Удалить память",
+           description="Удаляет память по ID")
+async def delete_memory(
+    memory_id: str,
+    user_id: str = "user",
+    client: EnterpriseMemoryClient = Depends(get_memory_client)
+) -> Dict[str, Any]:
+    try:
+        result = await client.delete_memory(memory_id=memory_id, user_id=user_id)
+        
+        logger.info(f"✅ Память удалена: {memory_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка удаления памяти: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления памяти: {str(e)}")
+
+
+@app.get("/memory/history/{memory_id}",
+         operation_id="get_memory_history",
+         summary="История памяти",
+         description="Получает историю изменений памяти")
+async def get_memory_history(
+    memory_id: str,
+    client: EnterpriseMemoryClient = Depends(get_memory_client)
+) -> Dict[str, Any]:
+    try:
+        result = await client.get_memory_history(memory_id)
+        
+        logger.info(f"✅ История памяти получена: {memory_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения истории памяти: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения истории памяти: {str(e)}")
+
+
+@app.get("/memory/stats",
+         operation_id="get_memory_stats",
+         summary="Статистика памяти",
+         description="Получает статистику использования памяти")
+async def get_memory_stats(
+    user_id: str = "user",
+    client: EnterpriseMemoryClient = Depends(get_memory_client)
+) -> Dict[str, Any]:
+    try:
+        result = await client.get_stats()
+        
+        logger.info(f"✅ Статистика памяти получена для {user_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения статистики: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")
+
+
+@app.post("/memory/bulk-save",
+          operation_id="bulk_save_memories",
+          summary="Массовое сохранение памяти",
+          description="Сохраняет несколько воспоминаний одновременно")
+async def bulk_save_memories(
+    memories: List[str],
+    user_id: str = "user",
+    agent_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    temporal: TemporalMemoryService = Depends(get_temporal)
+) -> Dict[str, Any]:
+    try:
+        session_id = session_id or f"bulk-session-{user_id}"
+        
+        # Массовая операция через Temporal
+        operations = []
+        for content in memories:
+            operation_id = await temporal.execute_memory_operation(
+                session_id=session_id,
+                operation_type="save",
+                user_id=user_id,
+                content=content,
+                agent_id=agent_id,
+                metadata=metadata
+            )
+            operations.append(operation_id)
+        
+        logger.info(f"✅ Bulk save operations sent via Temporal: {len(operations)} items")
+        
+        return {
+            "success": True,
+            "operations": operations,
+            "session_id": session_id,
+            "count": len(memories),
+            "message": f"Bulk save operations submitted to Temporal workflow",
+            "temporal_enabled": True,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка массового сохранения: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка массового сохранения: {str(e)}")
+
+
+@app.post("/analytics/entity-analysis",
+          operation_id="analyze_entity",
+          summary="Анализ сущности",
+          description="Анализирует сущность и её связи в графе памяти")
+async def analyze_entity(
+    request: EntityRequest,
+    temporal: TemporalMemoryService = Depends(get_temporal)
+) -> Dict[str, Any]:
+    try:
+        session_id = f"entity-analysis-{request.user_id}"
+        
+        # Анализ сущности через Temporal
+        operation_id = await temporal.execute_memory_operation(
+            session_id=session_id,
+            operation_type="analyze_entity",
+            user_id=request.user_id,
+            content=request.entity_name,
+            metadata={
+                "analysis_type": "entity",
+                "entity_name": request.entity_name
+            }
+        )
+        
+        logger.info(f"✅ Entity analysis operation sent via Temporal: {operation_id}")
+        
+        return {
+            "success": True,
+            "operation_id": operation_id,
+            "session_id": session_id,
+            "entity_name": request.entity_name,
+            "operation_type": "entity_analysis",
+            "message": "Entity analysis operation submitted to Temporal workflow",
+            "temporal_enabled": True,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка анализа сущности: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка анализа сущности: {str(e)}")
+
+
 # =================== TEMPORAL STATUS & MONITORING ===================
 
 @app.get("/temporal/session/{session_id}",
@@ -619,11 +784,16 @@ async def root() -> Dict[str, Any]:
 
 # =================== MCP INTEGRATION ===================
 
-# Создание MCP сервера
+# Создание MCP сервера ПОСЛЕ определения всех endpoints
+from fastapi_mcp import FastApiMCP
+
 mcp = FastApiMCP(app)
 
 # Монтирование MCP эндпоинта
 mcp.mount()
+
+logger.info("✅ FastAPI-MCP интегрирован: /mcp endpoint активен")
+logger.info("🎯 Все 17 Enterprise Memory Tools экспортированы в MCP Protocol")
 
 if __name__ == "__main__":
     import uvicorn

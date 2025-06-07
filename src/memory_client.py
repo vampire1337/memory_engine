@@ -126,7 +126,7 @@ class EnterpriseMemoryClient:
             vector_config = {
                 "provider": "qdrant",
                 "config": {
-                    "host": "localhost",
+                    "host": "qdrant",
                     "port": 6333
                 }
             }
