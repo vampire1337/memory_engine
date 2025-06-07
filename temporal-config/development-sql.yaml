@@ -1,0 +1,45 @@
+# Temporal Dynamic Configuration для PostgreSQL
+# Базовая конфигурация для development среды
+
+# Настройки persistence
+system.advancedVisibilityWritingMode:
+  - value: "off"
+    constraints: {}
+
+# Настройки работника
+worker.buildIdScavengerEnabled:
+  - value: true
+    constraints: {}
+
+# Настройки namespace
+system.forceSearchAttributesCacheRefreshOnRead:
+  - value: false
+    constraints: {}
+
+# Настройки для PostgreSQL
+system.enableLogCustomerQueryParameter:
+  - value: true
+    constraints: {}
+
+# Базовые лимиты
+system.maxIDLength:
+  - value: 1000
+    constraints: {}
+
+# Настройки retention
+system.standardVisibilityPersistenceMaxReadQPS:
+  - value: 9000
+    constraints: {}
+
+system.standardVisibilityPersistenceMaxWriteQPS:
+  - value: 9000
+    constraints: {}
+
+# Настройки для development
+frontend.enableTokenNamespaceEnforcement:
+  - value: false
+    constraints: {}
+
+system.enableParentClosePolicy:
+  - value: true
+    constraints: {} 

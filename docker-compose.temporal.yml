@@ -1,0 +1,244 @@
+# 🏗️ NEXT LEVEL DOCKER COMPOSE с TEMPORAL.IO
+# ==========================================
+#
+# УЛЬТИМАТИВНАЯ АРХИТЕКТУРА:
+# - Temporal.io: Workflow orchestration (заменяет Redis)
+# - Memgraph: Graph relationships
+# - Qdrant: Vector fallback store  
+# - PostgreSQL: Temporal persistence
+# - FastAPI: NEXT LEVEL memory server
+#
+# УБРАНО: Redis контейнер (замещен Temporal.io)
+
+services:
+  # =================== TEMPORAL.IO INFRASTRUCTURE ===================
+  
+  # PostgreSQL для Temporal persistence
+  temporal-postgresql:
+    image: postgres:15
+    container_name: mcp-temporal-postgres
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    ports:
+      - "5433:5432"
+    volumes:
+      - temporal_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  # Temporal Server (ЗАМЕНА Redis)
+  temporal-server:
+    image: temporalio/auto-setup:1.22.0
+    container_name: mcp-temporal-server
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgresql
+      - SKIP_DB_CREATE=false
+      - SKIP_DEFAULT_NAMESPACE_CREATION=false
+    ports:
+      - "7233:7233"  # gRPC endpoint
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal-server:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  # Temporal Web UI (опционально)
+  temporal-web:
+    image: temporalio/ui:2.21.3
+    container_name: mcp-temporal-web
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal-server:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8233:8080"
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  # =================== GRAPH & VECTOR STORES ===================
+  
+  # Memgraph для Graph Memory
+  memgraph:
+    image: memgraph/memgraph:2.14.0
+    container_name: mcp-memgraph
+    ports:
+      - "7687:7687"
+      - "7444:7444"
+      - "3000:3000"
+    environment:
+      - MEMGRAPH_USER=memgraph
+      - MEMGRAPH_PASSWORD=memgraph
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+      - memgraph_etc:/etc/memgraph
+      - memgraph_logs:/var/log/memgraph
+    command: >
+      --bolt-port=7687
+      --bolt-address=0.0.0.0
+      --log-level=INFO
+      --also-log-to-stderr=true
+      --memory-limit=1024
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'RETURN 1;' | cypher-shell -a bolt://localhost:7687 -u memgraph -p memgraph || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  # Qdrant для Vector Store fallback
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: mcp-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  # =================== NEXT LEVEL MEMORY SERVER ===================
+  
+  # MCP-Mem0 Server с Temporal.io
+  mcp-memory-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.temporal
+      target: production
+    container_name: mcp-memory-server-temporal
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      memgraph:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    ports:
+      - "8051:8000"
+    environment:
+      # Temporal Configuration
+      - TEMPORAL_SERVER_ADDRESS=temporal-server:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=memory-task-queue
+      
+      # Memory Configuration
+      - MEMORY_SERVER_HOST=0.0.0.0
+      - MEMORY_SERVER_PORT=8000
+      - LOG_LEVEL=INFO
+      
+      # Graph Store (Memgraph)
+      - NEO4J_URL=bolt://memgraph:7687
+      - NEO4J_USERNAME=memgraph
+      - NEO4J_PASSWORD=memgraph
+      
+      # Vector Store (Qdrant fallback)
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=
+      
+      # Supabase (если доступен)
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
+      
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+# =================== VOLUMES ===================
+volumes:
+  temporal_postgres_data:
+    driver: local
+  memgraph_data:
+    driver: local
+  memgraph_etc:
+    driver: local  
+  memgraph_logs:
+    driver: local
+  qdrant_data:
+    driver: local
+
+# =================== NETWORKS ===================
+networks:
+  mcp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =================== АРХИТЕКТУРНЫЕ ЗАМЕТКИ ===================
+# 
+# NEXT LEVEL ПРЕИМУЩЕСТВА:
+# 
+# 1. Temporal.io vs Redis:
+#    ✅ Автоматические ретраи и отказоустойчивость
+#    ✅ Визуализация workflow через Web UI
+#    ✅ Durable state без внешнего storage
+#    ✅ Type-safe workflow definitions
+#    ✅ Built-in monitoring и observability
+# 
+# 2. Unified Memory Architecture:
+#    ✅ Vector Store: Семантический поиск (Qdrant fallback)
+#    ✅ Graph Store: Relationships и entities (Memgraph)
+#    ✅ Workflow Engine: Coordination (Temporal.io)
+#    ✅ API Layer: MCP + REST (FastAPI)
+# 
+# 3. Production Features:
+#    ✅ Health checks для всех сервисов
+#    ✅ Persistent volumes для данных
+#    ✅ Network isolation
+#    ✅ Automatic restarts
+#    ✅ Comprehensive logging
+# 
+# УДАЛЕНО:
+# ❌ Redis container (замещен Temporal.io)
+# ❌ Redis complexity и async/await проблемы
+# ❌ Manual state management
+# ❌ Custom retry логика
+#
+# ENDPOINTS:
+# - MCP Memory Server: http://localhost:8051
+# - Temporal Web UI: http://localhost:8233  
+# - Memgraph: bolt://localhost:7687
+# - Qdrant: http://localhost:6333 

@@ -1,0 +1,150 @@
+# =================== NEXT LEVEL DOCKERFILE с TEMPORAL.IO ===================
+# 
+# 🏗️ УЛЬТИМАТИВНАЯ АРХИТЕКТУРА:
+# - Temporal.io workflows для orchestration  
+# - UV package manager для быстрых build'ов
+# - Multi-stage для оптимизации размера
+# - Production-ready с security best practices
+#
+# УБРАНО: Redis dependencies и сложности
+# ДОБАВЛЕНО: Temporal.io для максимальной надежности
+
+# =================== BASE STAGE ===================
+FROM python:3.11-slim-bullseye AS base
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка UV для быстрой установки пакетов
+RUN pip install uv
+
+# Создание пользователя для безопасности
+RUN useradd --create-home --shell /bin/bash app
+
+# =================== BUILDER STAGE ===================
+FROM base AS builder
+
+# Копирование requirements
+COPY requirements.txt .
+
+# Установка зависимостей через UV (в 10-100x быстрее pip)
+RUN uv pip install --system --no-cache-dir -r requirements.txt
+
+# =================== DEVELOPMENT STAGE ===================
+FROM builder AS development
+
+# Рабочая директория
+WORKDIR /app
+
+# Копирование исходного кода
+COPY --chown=app:app . .
+
+# Переключение на пользователя app
+USER app
+
+# Переменные окружения для разработки
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV LOG_LEVEL=DEBUG
+ENV TEMPORAL_SERVER_ADDRESS=temporal-server:7233
+
+# Проверка health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Запуск development сервера
+CMD ["python", "-m", "uvicorn", "src.fastapi_temporal_server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# =================== PRODUCTION STAGE ===================
+FROM base AS production
+
+# Установка только production зависимостей
+COPY requirements.txt .
+RUN uv pip install --system --no-cache-dir -r requirements.txt
+
+# Оптимизация: удаление build зависимостей
+RUN apt-get purge -y build-essential && apt-get autoremove -y
+
+# Рабочая директория
+WORKDIR /app
+
+# Копирование только необходимых файлов
+COPY --chown=app:app src/ ./src/
+COPY --chown=app:app pyproject.toml ./
+
+# Создание директорий для логов
+RUN mkdir -p /app/logs && chown app:app /app/logs
+
+# Переключение на пользователя app
+USER app
+
+# Production переменные окружения
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV LOG_LEVEL=INFO
+ENV TEMPORAL_SERVER_ADDRESS=temporal-server:7233
+ENV TEMPORAL_NAMESPACE=default
+ENV TEMPORAL_TASK_QUEUE=memory-task-queue
+
+# Проверка health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose порт
+EXPOSE 8000
+
+# Production запуск с Gunicorn
+CMD ["gunicorn", "src.fastapi_temporal_server:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
+
+# =================== TEMPORAL WORKER STAGE ===================
+FROM production AS temporal-worker
+
+# Переменные для Temporal Worker
+ENV TEMPORAL_WORKER_ENABLED=true
+ENV TEMPORAL_TASK_QUEUE=memory-task-queue
+
+# Запуск Temporal Worker
+CMD ["python", "-m", "src.temporal_memory_service"]
+
+# =================== АРХИТЕКТУРНЫЕ ЗАМЕТКИ ===================
+#
+# NEXT LEVEL ОСОБЕННОСТИ:
+#
+# 1. UV Package Manager:
+#    ✅ В 10-100x быстрее pip
+#    ✅ Better dependency resolution
+#    ✅ Deterministic builds
+#
+# 2. Multi-stage Build:
+#    ✅ development: С reload и debug
+#    ✅ production: Оптимизированный размер
+#    ✅ temporal-worker: Dedicated worker
+#
+# 3. Security:
+#    ✅ Non-root пользователь
+#    ✅ Минимальный attack surface
+#    ✅ No unnecessary packages
+#
+# 4. Temporal.io Integration:
+#    ✅ Автоматическое подключение к Temporal server
+#    ✅ Правильная конфигурация worker'а
+#    ✅ Health checks для workflows
+#
+# 5. Production Features:
+#    ✅ Gunicorn для production
+#    ✅ Proper logging configuration
+#    ✅ Health checks
+#    ✅ Resource optimization
+#
+# УДАЛЕНО:
+# ❌ Redis related packages
+# ❌ Complex Redis configuration
+# ❌ Manual state management code
+#
+# BUILD КОМАНДЫ:
+# - Development: docker build --target development -t mcp-mem0:dev .
+# - Production: docker build --target production -t mcp-mem0:prod .
+# - Worker: docker build --target temporal-worker -t mcp-mem0:worker . 

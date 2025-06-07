@@ -29,14 +29,8 @@ except ImportError as e:
     Memory = None
     logger.error(f"❌ Mem0 SDK недоступен: {e}")
 
-# Redis Service
-try:
-    from .redis_service import RedisService, RedisEventTypes
-    REDIS_AVAILABLE = True
-    logger.info("✅ Redis Service доступен")
-except ImportError as e:
-    REDIS_AVAILABLE = False
-    logger.warning(f"⚠️ Redis Service недоступен: {e}")
+# Redis больше не используется - заменен на Temporal
+REDIS_AVAILABLE = False
 
 
 class EnterpriseMemoryClient:
@@ -52,12 +46,11 @@ class EnterpriseMemoryClient:
     
     def __init__(self):
         self.memory: Optional[Memory] = None
-        self.redis_service: Optional[RedisService] = None
         
         # Флаги поддержки
         self.graph_support = False
         self.vector_support = False
-        self.redis_support = REDIS_AVAILABLE
+        self.redis_support = False  # Заменен на Temporal
         
         # Metrics
         self.operations_count = 0
@@ -80,7 +73,30 @@ class EnterpriseMemoryClient:
             
             # Инициализация Mem0 
             logger.info("📝 Создание Mem0 Memory с full config...")
-            self.memory = Memory.from_config(config_dict=config)
+            logger.info(f"🔧 Config: {config}")
+            
+            try:
+                self.memory = Memory.from_config(config_dict=config)
+                logger.info("✅ Mem0 Memory создан успешно")
+            except Exception as supabase_error:
+                if "Wrong password" in str(supabase_error) or "connection" in str(supabase_error).lower():
+                    logger.warning(f"⚠️ Supabase недоступен ({supabase_error}), переключаемся на Qdrant")
+                    
+                    # Fallback конфигурация с Qdrant
+                    fallback_config = config.copy()
+                    fallback_config["vector_store"] = {
+                        "provider": "qdrant",
+                        "config": {
+                            "host": "qdrant",
+                            "port": 6333
+                        }
+                    }
+                    
+                    logger.info("🔄 Повторная инициализация с Qdrant...")
+                    self.memory = Memory.from_config(config_dict=fallback_config)
+                    logger.info("✅ Mem0 Memory создан с Qdrant fallback")
+                else:
+                    raise supabase_error
             
             # Проверка поддержки компонентов
             await self._check_component_support()
@@ -104,32 +120,46 @@ class EnterpriseMemoryClient:
             database_url = database_url.replace(":6543", ":5432")
             logger.info("🔧 Исправлен порт DATABASE_URL: 6543 → 5432 (Session pooler)")
         
+        # Fallback к локальной базе если Supabase недоступен
+        if not database_url or "Wrong password" in str(database_url):
+            logger.warning("⚠️ Supabase недоступен, переключаемся на локальную Qdrant")
+            vector_config = {
+                "provider": "qdrant",
+                "config": {
+                    "host": "localhost",
+                    "port": 6333
+                }
+            }
+        else:
+            vector_config = {
+                "provider": "supabase",
+                "config": {
+                    "connection_string": database_url or os.getenv("POSTGRES_URL")
+                }
+            }
+        
         config = {
             "version": "v1.1",  # ВАЖНО: версия для Graph Memory
             
             # Graph Store (Memgraph через neo4j драйвер)
             "graph_store": {
-                "provider": "neo4j",
+                "provider": "neo4j", 
                 "config": {
                     "url": os.getenv("NEO4J_URL", "bolt://memgraph:7687"),
                     "username": os.getenv("NEO4J_USERNAME", "memgraph"),
-                    "password": os.getenv("NEO4J_PASSWORD", "graphmemory123"),
+                    "password": os.getenv("NEO4J_PASSWORD", "memgraph")
+                    # НЕ указываем database параметр - Memgraph не поддерживает отдельные БД
                 }
             },
             
-            # Vector Store (Supabase с правильным портом)
-            "vector_store": {
-                "provider": "supabase",
-                "config": {
-                    "connection_string": database_url or os.getenv("POSTGRES_URL")
-                }
-            },
+            # Vector Store (с fallback)
+            "vector_store": vector_config,
             
             # LLM Configuration
             "llm": {
                 "provider": "openai",
                 "config": {
-                    "model": os.getenv("LLM_MODEL", "gpt-4o-mini"),
+                    "model": os.getenv("LLM_CHOICE") or os.getenv("MEM0_DEFAULT_LLM_MODEL", "gpt-4o-mini"),
                     "api_key": os.getenv("OPENAI_API_KEY")
                 }
             },
@@ -138,7 +168,7 @@ class EnterpriseMemoryClient:
             "embedder": {
                 "provider": "openai",
                 "config": {
-                    "model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
+                    "model": os.getenv("EMBEDDING_MODEL_CHOICE") or os.getenv("MEM0_DEFAULT_EMBEDDING_MODEL", "text-embedding-3-small"),
                     "api_key": os.getenv("OPENAI_API_KEY")
                 }
             }
