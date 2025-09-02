@@ -1,4 +1,4 @@
-# 🧠 **Enterprise MCP-Mem0 Server v2.0**
+# **Enterprise MCP-Mem0 Server v2.0**
 
 <div align="center">
 
@@ -15,23 +15,23 @@
 
 ---
 
-## 🎯 **ЧТО ЭТО ТАКОЕ?**
+## **ЧТО ЭТО ТАКОЕ?**
 
 **Enterprise MCP-Mem0 Server** - это production-ready система управления памятью для AI агентов, предоставляющая **17 enterprise tools** через Model Context Protocol (MCP).
 
 ### 🏗️ **Ключевые особенности:**
-- ✅ **FastAPI-MCP Integration** - автоматическая генерация MCP tools из FastAPI endpoints
-- ✅ **Hybrid Memory System** - Graph (Memgraph) + Vector (Supabase) память одновременно
-- ✅ **Redis Synchronization** - события, кэширование и distributed locking
-- ✅ **Enterprise Grade** - comprehensive error handling, monitoring, logging
-- ✅ **Background Tasks** - асинхронная обработка heavy operations
-- ✅ **Production Ready** - Docker, security, scalability
+-  **FastAPI-MCP Integration** - автоматическая генерация MCP tools из FastAPI endpoints
+-  **Hybrid Memory System** - Graph (Memgraph) + Vector (Supabase) память одновременно
+-  **Redis Synchronization** - события, кэширование и distributed locking
+-  **Enterprise Grade** - comprehensive error handling, monitoring, logging
+-  **Background Tasks** - асинхронная обработка heavy operations
+-  **Production Ready** - Docker, security, scalability
 
 ---
 
-## 📊 **17 ENTERPRISE TOOLS**
+##  **17 ENTERPRISE TOOLS**
 
-### 📚 **Memory Tools (11):**
+###  **Memory Tools (11):**
 1. **save_memory** - сохранение памяти с Graph+Vector processing
 2. **search_memories** - hybrid поиск с Redis кэшированием
 3. **get_all_memories** - получение всех воспоминаний пользователя
@@ -44,21 +44,21 @@
 10. **get_current_project_state** - текущее состояние проекта
 11. **track_project_evolution** - эволюция проекта во времени
 
-### 🕸️ **Graph Memory Tools (4):**
+###  **Graph Memory Tools (4):**
 12. **save_graph_memory** - сохранение с извлечением сущностей и связей
 13. **search_graph_memory** - поиск с графовым контекстом
 14. **get_entity_relationships** - анализ связей сущности
 15. **graph_status** - статус графовой системы
 
-### ⚙️ **System Tools (2):**
+### ⚙ **System Tools (2):**
 16. **health** - комплексная проверка здоровья системы
 17. **root** - информация о системе и endpoints
 
 ---
 
-## 🚀 **БЫСТРЫЙ СТАРТ**
+##  **БЫСТРЫЙ СТАРТ**
 
-### 1️⃣ **Установка и настройка:**
+###  **Установка и настройка:**
 ```bash
 # Клонирование репозитория
 git clone https://github.com/your-repo/mcp-mem0
@@ -75,7 +75,7 @@ REDIS_URL=redis://:redispassword@redis:6379/0
 EOF
 ```
 
-### 2️⃣ **Запуск production системы:**
+### **Запуск production системы:**
 ```bash
 # Сборка и запуск всех сервисов
 docker-compose -f docker-compose.production.yml up -d --build
@@ -87,7 +87,7 @@ docker-compose -f docker-compose.production.yml ps
 curl http://localhost:8000/health
 ```
 
-### 3️⃣ **Тестирование MCP tools:**
+### **Тестирование MCP tools:**
 ```bash
 # Сохранение памяти
 curl -X POST "http://localhost:8000/memory/save" \
@@ -110,7 +110,7 @@ curl -X POST "http://localhost:8000/memory/search" \
 
 ## 🔧 **ИНТЕГРАЦИЯ С CURSOR**
 
-### 📝 **Конфигурация MCP:**
+### **Конфигурация MCP:**
 ```json
 {
   "mcpServers": {
@@ -123,7 +123,7 @@ curl -X POST "http://localhost:8000/memory/search" \
 }
 ```
 
-### 🎯 **Использование в Cursor:**
+###  **Использование в Cursor:**
 ```
 @mcp-mem0-enterprise.save_memory content="Пользователь любит Python" user_id="dev_alex"
 @mcp-mem0-enterprise.search_memories query="языки программирования" user_id="dev_alex"
@@ -132,7 +132,7 @@ curl -X POST "http://localhost:8000/memory/search" \
 
 ---
 
-## 🏗️ **АРХИТЕКТУРА СИСТЕМЫ**
+##  **АРХИТЕКТУРА СИСТЕМЫ**
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -156,7 +156,7 @@ curl -X POST "http://localhost:8000/memory/search" \
                                     └─────────────────┘ └─────────────────┘
 ```
 
-### 🔄 **Data Flow:**
+###  **Data Flow:**
 1. **AI Agent** вызывает MCP tool
 2. **FastAPI-MCP** автоматически генерирует tool из endpoint
 3. **Memory Client** обрабатывает запрос через Mem0
@@ -166,103 +166,103 @@ curl -X POST "http://localhost:8000/memory/search" \
 
 ---
 
-## 📁 **СТРУКТУРА ПРОЕКТА**
+##  **СТРУКТУРА ПРОЕКТА**
 
 ```
 mcp-mem0/
-├── 🐳 Dockerfile                    # Production multi-stage build
-├── 🐳 docker-compose.production.yml # Production deployment
-├── 📊 requirements.txt              # Python dependencies
-├── ⚙️ pyproject.toml               # Project configuration
-├── 📝 .env.example                 # Environment template
+├──  Dockerfile                    # Production multi-stage build
+├──  docker-compose.production.yml # Production deployment
+├──  requirements.txt              # Python dependencies
+├──  pyproject.toml               # Project configuration
+├── .env.example                 # Environment template
 │
-├── 📂 src/                         # Source code
-│   ├── 🧠 fastapi_mcp_server.py   # Main MCP server (17 tools)
-│   ├── 💾 memory_client.py         # Enterprise memory client
-│   ├── 🔴 redis_service.py         # Redis integration
-│   ├── 🛠️ utils.py                # Utilities
-│   └── 📦 __init__.py              # Package init
+├──  src/                         # Source code
+│   ├──  fastapi_mcp_server.py   # Main MCP server (17 tools)
+│   ├──  memory_client.py         # Enterprise memory client
+│   ├──  redis_service.py         # Redis integration
+│   ├──  utils.py                # Utilities
+│   └──  __init__.py              # Package init
 │
-├── 📚 docs/                        # Documentation
-│   ├── 📖 COMPREHENSIVE_TOOLS_GUIDE.md  # All 17 tools detailed
-│   ├── 🚀 DEPLOYMENT_GUIDE.md           # Production deployment
-│   ├── 🏗️ ENTERPRISE_ARCHITECTURE.md   # Architecture overview
-│   └── 📋 IMPLEMENTATION_LOG.md         # Development history
+├──  docs/                        # Documentation
+│   ├──  COMPREHENSIVE_TOOLS_GUIDE.md  # All 17 tools detailed
+│   ├──  DEPLOYMENT_GUIDE.md           # Production deployment
+│   ├── 🏗 ENTERPRISE_ARCHITECTURE.md   # Architecture overview
+│   └──  IMPLEMENTATION_LOG.md         # Development history
 │
-└── 📊 monitoring/                  # Monitoring & logs
-    ├── 📈 logs/                   # Application logs
-    └── 📊 backups/                # Data backups
+└──  monitoring/                  # Monitoring & logs
+    ├──  logs/                   # Application logs
+    └──  backups/                # Data backups
 ```
 
 ---
 
-## 🛠️ **ТЕХНИЧЕСКИЙ СТЕК**
+##  **ТЕХНИЧЕСКИЙ СТЕК**
 
-### 🐍 **Backend:**
+###  **Backend:**
 - **FastAPI 0.104+** - modern web framework
 - **FastAPI-MCP** - automatic MCP tools generation
 - **Mem0 1.1+** - hybrid memory system
 - **Redis** - caching & synchronization
 - **Pydantic** - data validation
 
-### 🗄️ **Storage:**
+###  **Storage:**
 - **Supabase PostgreSQL** - vector embeddings storage
 - **Memgraph** - graph relationships storage
 - **Redis** - distributed cache
 
-### 🐳 **Infrastructure:**
+###  **Infrastructure:**
 - **Docker** - containerization
 - **Docker Compose** - multi-service orchestration
 - **Uvicorn** - ASGI server
 - **Multi-stage builds** - optimized images
 
-### 🔧 **Integrations:**
+###  **Integrations:**
 - **Model Context Protocol (MCP)** - AI agent communication
 - **OpenAI API** - embeddings generation
 - **Neo4j Driver** - graph database access
 
 ---
 
-## 📊 **FEATURES & CAPABILITIES**
+##  **FEATURES & CAPABILITIES**
 
-### 🧠 **Memory Management:**
-- ✅ **Hybrid Storage** - Graph + Vector simultaneously
-- ✅ **Semantic Search** - embedding-based relevance
-- ✅ **Graph Traversal** - relationship-aware queries
-- ✅ **Context Validation** - quality assurance
-- ✅ **Conflict Resolution** - contradiction handling
+###  **Memory Management:**
+-  **Hybrid Storage** - Graph + Vector simultaneously
+-  **Semantic Search** - embedding-based relevance
+-  **Graph Traversal** - relationship-aware queries
+-  **Context Validation** - quality assurance
+-  **Conflict Resolution** - contradiction handling
 
-### 🔄 **Real-time Synchronization:**
-- ✅ **Redis Events** - cross-component communication
-- ✅ **Background Tasks** - non-blocking operations
-- ✅ **Distributed Locking** - consistency guarantees
-- ✅ **Cache Management** - intelligent TTL policies
+###  **Real-time Synchronization:**
+-  **Redis Events** - cross-component communication
+-  **Background Tasks** - non-blocking operations
+-  **Distributed Locking** - consistency guarantees
+-  **Cache Management** - intelligent TTL policies
 
-### 🏢 **Enterprise Features:**
-- ✅ **Multi-tenancy** - user/agent/session isolation
-- ✅ **Error Recovery** - comprehensive exception handling
-- ✅ **Monitoring** - metrics collection & health checks
-- ✅ **Logging** - structured logging with correlation IDs
-- ✅ **Security** - input validation & sanitization
+###  **Enterprise Features:**
+-  **Multi-tenancy** - user/agent/session isolation
+-  **Error Recovery** - comprehensive exception handling
+-  **Monitoring** - metrics collection & health checks
+-  **Logging** - structured logging with correlation IDs
+-  **Security** - input validation & sanitization
 
-### 🚀 **Production Readiness:**
-- ✅ **Docker Deployment** - containerized architecture
-- ✅ **Health Checks** - automated monitoring
-- ✅ **Graceful Shutdown** - proper resource cleanup
-- ✅ **Resource Limits** - controlled resource usage
-- ✅ **Non-root Execution** - security best practices
+###  **Production Readiness:**
+-  **Docker Deployment** - containerized architecture
+-  **Health Checks** - automated monitoring
+-  **Graceful Shutdown** - proper resource cleanup
+-  **Resource Limits** - controlled resource usage
+-  **Non-root Execution** - security best practices
 
 ---
 
-## 📖 **ДОКУМЕНТАЦИЯ**
+##  **ДОКУМЕНТАЦИЯ**
 
-### 📚 **Основные руководства:**
-- **[📖 COMPREHENSIVE_TOOLS_GUIDE.md](COMPREHENSIVE_TOOLS_GUIDE.md)** - подробное описание всех 17 tools
-- **[🚀 DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - полное руководство по development
-- **[🏗️ ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md)** - архитектурный обзор
-- **[📋 IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)** - история развития проекта
+###  **Основные руководства:**
+- **[ COMPREHENSIVE_TOOLS_GUIDE.md](COMPREHENSIVE_TOOLS_GUIDE.md)** - подробное описание всех 17 tools
+- **[ DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - полное руководство по development
+- **[ ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md)** - архитектурный обзор
+- **[ IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md)** - история развития проекта
 
-### 🔗 **API Documentation:**
+### **API Documentation:**
 - **OpenAPI Docs:** `http://localhost:8000/docs`
 - **ReDoc:** `http://localhost:8000/redoc`
 - **MCP Endpoint:** `http://localhost:8000/mcp`
@@ -270,9 +270,9 @@ mcp-mem0/
 
 ---
 
-## 🧪 **ТЕСТИРОВАНИЕ**
+##  **ТЕСТИРОВАНИЕ**
 
-### 🔍 **Manual Testing:**
+###  **Manual Testing:**
 ```bash
 # HTTP API Testing
 curl -X POST "http://localhost:8000/memory/save" \
@@ -284,14 +284,14 @@ npx @modelcontextprotocol/inspector
 # URL: http://localhost:8000/mcp
 ```
 
-### 🎯 **Cursor Testing:**
+### **Cursor Testing:**
 ```
 @mcp-mem0-enterprise.save_memory content="Test" user_id="test"
 @mcp-mem0-enterprise.search_memories query="test" user_id="test"
 @mcp-mem0-enterprise.health
 ```
 
-### 📊 **Automated Testing:**
+###  **Automated Testing:**
 ```bash
 # Health check
 curl http://localhost:8000/health
@@ -302,11 +302,11 @@ bash test_all_tools.sh
 
 ---
 
-## 🔧 **TROUBLESHOOTING**
+##  **TROUBLESHOOTING**
 
-### ❌ **Общие проблемы:**
+###  **Общие проблемы:**
 
-#### 🔌 **Connection Issues:**
+####  **Connection Issues:**
 ```bash
 # Database
 echo $DATABASE_URL  # Проверить порт 5432 (не 6543!)
@@ -318,7 +318,7 @@ docker exec redis redis-cli ping
 docker exec memgraph mgconsole
 ```
 
-#### 🐳 **Docker Issues:**
+####  **Docker Issues:**
 ```bash
 # Rebuild containers
 docker-compose -f docker-compose.production.yml down
@@ -328,7 +328,7 @@ docker-compose -f docker-compose.production.yml up --build -d
 docker-compose -f docker-compose.production.yml logs -f
 ```
 
-#### 🔧 **MCP Issues:**
+####  **MCP Issues:**
 ```bash
 # Check MCP endpoint
 curl http://localhost:8000/mcp
@@ -339,16 +339,16 @@ docker-compose -f docker-compose.production.yml restart mcp-memory-server
 
 ---
 
-## 🤝 **CONTRIBUTING**
+##  **CONTRIBUTING**
 
-### 🔄 **Development Workflow:**
+###  **Development Workflow:**
 1. Fork repository
 2. Create feature branch
 3. Make changes with tests
 4. Submit pull request
 5. Code review & merge
 
-### 📋 **Code Standards:**
+###  **Code Standards:**
 - **Python 3.11+** with type hints
 - **Black** code formatting
 - **Pylint** code quality
@@ -357,13 +357,13 @@ docker-compose -f docker-compose.production.yml restart mcp-memory-server
 
 ---
 
-## 📜 **LICENSE**
+##  **LICENSE**
 
 MIT License - см. [LICENSE](LICENSE) файл для подробностей.
 
 ---
 
-## 🙏 **ACKNOWLEDGMENTS**
+##  **ACKNOWLEDGMENTS**
 
 - **[FastAPI-MCP](https://github.com/tadata-ru/fastapi-mcp)** - MCP integration framework
 - **[Mem0](https://mem0.ai/)** - AI memory platform
@@ -375,7 +375,7 @@ MIT License - см. [LICENSE](LICENSE) файл для подробностей.
 
 <div align="center">
 
-**🧠 Enterprise MCP-Mem0 Server v2.0**
+* Enterprise MCP-Mem0 Server v2.0**
 
 *Production-ready Memory System for AI Agents*
 
