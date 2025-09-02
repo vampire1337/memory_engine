@@ -19,7 +19,7 @@
 
 **Enterprise MCP-Mem0 Server** - это production-ready система управления памятью для AI агентов, предоставляющая **17 enterprise tools** через Model Context Protocol (MCP).
 
-### 🏗️ **Ключевые особенности:**
+###  **Ключевые особенности:**
 -  **FastAPI-MCP Integration** - автоматическая генерация MCP tools из FastAPI endpoints
 -  **Hybrid Memory System** - Graph (Memgraph) + Vector (Supabase) память одновременно
 -  **Redis Synchronization** - события, кэширование и distributed locking
@@ -108,7 +108,7 @@ curl -X POST "http://localhost:8000/memory/search" \
 
 ---
 
-## 🔧 **ИНТЕГРАЦИЯ С CURSOR**
+## **ИНТЕГРАЦИЯ С CURSOR**
 
 ### **Конфигурация MCP:**
 ```json
