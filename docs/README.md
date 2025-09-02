@@ -1,4 +1,4 @@
-# **Enterprise MCP-Mem0 Server v2.0**
+# **Memory Engine (Mem0)**
 
 <div align="center">
 
