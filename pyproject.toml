@@ -16,12 +16,12 @@ requires-python = ">=3.11"
 # Основные зависимости
 dependencies = [
     # Core MCP и Memory
-    "mcp==1.1.0",
+    "mcp==1.10.0",
     "mem0ai==0.2.14", 
     
     # LLM и Embeddings
     "openai==1.56.2",
-    "litellm==1.55.7",
+    "litellm==1.61.15",
     
     # FastAPI и веб-сервер
     "fastapi==0.115.6",
@@ -57,8 +57,8 @@ dependencies = [
     
     # HTTP и networking  
     "httpx==0.28.1",
-    "requests==2.32.3",
-    "aiohttp==3.11.10",
+    "requests==2.32.4",
+    "aiohttp==3.12.14",
     
     # Utilities
     "python-dotenv==1.0.1",
